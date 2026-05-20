@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vishak Tech — Company Dashboard</title>
+<title>Vishak Tech — Work Order Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -24,13 +24,14 @@
     --accent:      #e07040;
     --accent2:     #f0905a;
     --accent-glow: rgba(224,112,64,0.22);
-    --blue:   #41a8c8;
-    --green:  #3dba80;
-    --amber:  #d4a030;
-    --purple: #9060d0;
+    --blue:   #41a8c8; --blue-bg:   rgba(65,168,200,0.13);
+    --green:  #3dba80; --green-bg:  rgba(61,186,128,0.13);
+    --amber:  #d4a030; --amber-bg:  rgba(212,160,48,0.13);
+    --purple: #9060d0; --purple-bg: rgba(144,96,208,0.13);
     --red:    #d05050;
     --radius: 12px; --radius-lg: 16px; --radius-xl: 20px;
   }
+
   body {
     font-family: 'DM Sans', sans-serif;
     background: var(--bg);
@@ -40,11 +41,13 @@
       radial-gradient(ellipse  40% 30% at  0% 60%,  rgba(65,168,200,0.04) 0%, transparent 50%);
     color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.6; font-weight: 500;
   }
+
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: var(--bg2); }
   ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--surface4); }
 
+  /* LOADING */
   #loading-screen {
     position: fixed; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; background: var(--bg); z-index: 100; transition: opacity 0.4s;
@@ -56,6 +59,7 @@
   .loader-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
   .loader-sub { font-size: 12px; color: var(--text3); }
 
+  /* ERROR */
   #error-screen { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); z-index: 99; padding: 2rem; }
   #error-screen.show { display: flex; }
   .error-box { width: min(500px,90vw); background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 2.5rem 2rem; text-align: center; }
@@ -63,21 +67,28 @@
   .error-title { font-size: 17px; font-weight: 600; margin-bottom: 0.5rem; }
   .error-msg { font-size: 13px; color: var(--text2); margin-bottom: 1.5rem; line-height: 1.6; }
   .retry-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: white; border: none; border-radius: 8px; padding: 0.65rem 1.5rem; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.2s; box-shadow: 0 0 20px rgba(224,112,64,0.35); }
-  .retry-btn:hover { background: var(--accent2); }
+  .retry-btn:hover { background: var(--accent2); box-shadow: 0 0 28px rgba(224,112,64,0.50); }
 
+  /* LAYOUT */
   #dashboard { display: none; max-width: 1300px; margin: 0 auto; padding: 1.5rem 1.5rem 3.5rem; }
   #dashboard.visible { display: block; }
 
+  /* TOPBAR */
   .topbar {
     display: flex; align-items: center; justify-content: space-between;
     background: var(--surface); border: 1px solid var(--border); border-bottom: 1px solid var(--border-strong);
     border-radius: var(--radius-xl); padding: 0.85rem 1.4rem; margin-bottom: 1.4rem;
     gap: 1rem; flex-wrap: wrap;
-    box-shadow: 0 1px 0 rgba(224,112,64,0.08), 0 6px 30px rgba(0,0,0,0.60);
+    box-shadow: 0 1px 0 rgba(224,112,64,0.08), 0 6px 30px rgba(0,0,0,0.60), 0 0 0 1px rgba(80,180,120,0.05);
     backdrop-filter: blur(12px);
   }
   .brand { display: flex; align-items: center; gap: 11px; }
-  .brand-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #e07040, #b83018); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 0 18px rgba(224,112,64,0.40); }
+  .brand-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #e07040, #b83018);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    box-shadow: 0 0 18px rgba(224,112,64,0.40);
+  }
   .brand-icon svg { width: 17px; height: 17px; stroke: white; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
   .brand-name { font-size: 16px; font-weight: 800; letter-spacing: -0.4px; color: #ffffff; }
   .brand-sub { font-size: 11px; color: var(--text2); margin-top: 1px; font-weight: 600; letter-spacing: 0.3px; }
@@ -94,53 +105,84 @@
   .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2.2s ease-in-out infinite; }
   @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 6px var(--green)} 50%{opacity:0.4;box-shadow:0 0 2px var(--green)} }
 
+  /* SHEET SOURCE CHIP */
+  .sheet-source { display:inline-flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border-strong); border-radius:9px; padding:0.38rem 0.9rem; font-size:11.5px; color:var(--text2); }
+  .sheet-source svg { width:13px; height:13px; stroke:var(--green); fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+
+  /* STATUS BAR */
+  #status-bar { font-size: 12px; font-family: 'DM Mono', monospace; display: none; align-items: center; gap: 8px; padding: 0.6rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
+  #status-bar.show { display: flex; }
+  #status-bar.error   { background: rgba(208,80,80,0.10);  border: 1px solid rgba(208,80,80,0.25);  color: var(--red); }
+  #status-bar.loading { background: rgba(224,112,64,0.08); border: 1px solid rgba(224,112,64,0.18); color: var(--accent); }
+  #status-bar.success { background: rgba(61,186,128,0.08); border: 1px solid rgba(61,186,128,0.18); color: var(--green); }
+
+  /* KPI GRID */
   .kpi-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 14px; margin-bottom: 1.4rem; }
-  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.3rem 1.1rem; position: relative; overflow: hidden; transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 1.25rem 1.3rem 1.1rem; position: relative; overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; cursor: default;
+  }
   .kpi:hover { border-color: var(--border-accent); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
   .kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; border-radius:16px 16px 0 0; }
-  .kpi.k1::before{background:linear-gradient(90deg,#e07040,#f09060)}
-  .kpi.k2::before{background:linear-gradient(90deg,#3dba80,#60d49a)}
-  .kpi.k3::before{background:linear-gradient(90deg,#41a8c8,#60c8e8)}
-  .kpi.k4::before{background:linear-gradient(90deg,#9b6fe0,#b890f8)}
-  .kpi.k5::before{background:linear-gradient(90deg,#d05050,#e07070)}
-  .kpi.k6::before{background:linear-gradient(90deg,#d4a030,#e8c050)}
+  .kpi.k1::before{background:linear-gradient(90deg,#e07040,#f09060)} .kpi.k2::before{background:linear-gradient(90deg,#3dba80,#60d49a)}
+  .kpi.k3::before{background:linear-gradient(90deg,#41a8c8,#60c8e8)} .kpi.k4::before{background:linear-gradient(90deg,#9b6fe0,#b890f8)}
+  .kpi.k5::before{background:linear-gradient(90deg,#d05050,#e07070)} .kpi.k6::before{background:linear-gradient(90deg,#d4a030,#e8c050)}
   .kpi-label { font-size:11px; color:var(--text2); font-weight:700; text-transform:uppercase; letter-spacing:0.7px; margin-bottom:4px; }
   .kpi-val { font-size:38px; font-weight:800; line-height:1; font-family:'DM Mono',monospace; letter-spacing:-1.5px; }
-  .kpi.k1 .kpi-val{color:#f5b090}
-  .kpi.k2 .kpi-val{color:#80e8b8}
-  .kpi.k3 .kpi-val{color:#90c8f8}
-  .kpi.k4 .kpi-val{color:#c8a8f8}
-  .kpi.k5 .kpi-val{color:#e89090}
-  .kpi.k6 .kpi-val{color:#e8c870}
+  .kpi.k1 .kpi-val{color:#f5b090} .kpi.k2 .kpi-val{color:#80e8b8} .kpi.k3 .kpi-val{color:#90c8f8}
+  .kpi.k4 .kpi-val{color:#c8a8f8} .kpi.k5 .kpi-val{color:#e89090} .kpi.k6 .kpi-val{color:#e8c870}
   .kpi-sub { font-size:11px; color:var(--text2); margin-top:7px; font-weight:600; }
 
-  .filter-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.65rem 1rem; margin-bottom: 1.4rem; }
+  /* FILTER BAR */
+  .filter-bar {
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 0.65rem 1rem; margin-bottom: 1.4rem;
+  }
   .filter-label { font-size:11px; font-weight:800; color:var(--text2); text-transform:uppercase; letter-spacing:0.6px; margin-right:2px; white-space:nowrap; }
   .filter-input {
     background: var(--surface2); border: 1px solid var(--border-strong); color: var(--text);
     border-radius: 8px; padding: 0.38rem 0.75rem 0.38rem 2.1rem; font-size: 12px; font-family: inherit;
-    outline: none; width: 200px; transition: border-color 0.18s, width 0.2s, box-shadow 0.18s;
+    outline: none; width: 180px; transition: border-color 0.18s, width 0.2s, box-shadow 0.18s;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c7391' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:9px center;
   }
-  .filter-input:focus { border-color: var(--border-accent); width: 250px; box-shadow: 0 0 0 3px rgba(224,112,64,0.12); }
+  .filter-input:focus { border-color: var(--border-accent); width: 225px; box-shadow: 0 0 0 3px rgba(224,112,64,0.12); }
   .filter-input::placeholder { color: var(--text3); }
-  .filter-select { background: var(--surface2); border: 1px solid var(--border-strong); color: var(--text2); border-radius: 8px; padding: 0.38rem 0.7rem; font-size: 12px; font-family: inherit; outline: none; cursor: pointer; transition: border-color 0.18s; }
+  .filter-select {
+    background: var(--surface2); border: 1px solid var(--border-strong); color: var(--text2);
+    border-radius: 8px; padding: 0.38rem 0.7rem; font-size: 12px; font-family: inherit;
+    outline: none; cursor: pointer; transition: border-color 0.18s;
+  }
   .filter-select:focus { border-color: var(--border-accent); color: var(--text); }
   .filter-select option { background: var(--surface2); }
-  .clear-btn { background: none; border: 1px solid var(--border-strong); color: var(--text3); border-radius: 8px; padding: 0.38rem 0.75rem; font-size: 11px; font-family: inherit; cursor: pointer; transition: all 0.18s; white-space: nowrap; }
+  .clear-btn {
+    background: none; border: 1px solid var(--border-strong); color: var(--text3);
+    border-radius: 8px; padding: 0.38rem 0.75rem; font-size: 11px; font-family: inherit;
+    cursor: pointer; transition: all 0.18s; white-space: nowrap;
+  }
   .clear-btn:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.07); }
   .filter-count { font-size:11px; color:var(--accent); font-family:'DM Mono',monospace; margin-left:auto; font-weight:600; }
 
-  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.4rem; transition: border-color 0.2s; margin-bottom: 16px; }
+  /* CARDS */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 1.4rem; transition: border-color 0.2s; margin-bottom: 16px;
+  }
   .card:hover { border-color: var(--border-strong); }
-  .card-title { font-size: 11.5px; font-weight: 800; color: var(--text); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 1.1rem; display: flex; align-items: center; gap: 8px; padding-bottom: 0.85rem; border-bottom: 1px solid var(--border); }
+  .card-title {
+    font-size: 11.5px; font-weight: 800; color: var(--text);
+    text-transform: uppercase; letter-spacing: 0.7px;
+    margin-bottom: 1.1rem; display: flex; align-items: center; gap: 8px;
+    padding-bottom: 0.85rem; border-bottom: 1px solid var(--border);
+  }
   .card-title svg { width: 14px; height: 14px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; opacity: 0.9; }
 
+  /* CARD SEARCH */
   .card-search { display:flex; align-items:center; gap:8px; margin-bottom:0.85rem; flex-wrap:wrap; }
   .card-search-input {
-    flex:1; min-width:140px; background: var(--surface2); border: 1px solid var(--border-strong);
+    flex:1; min-width:120px; background: var(--surface2); border: 1px solid var(--border-strong);
     color: var(--text); border-radius: 8px; padding: 0.35rem 0.65rem 0.35rem 2rem; font-size: 12px;
     font-family: inherit; outline: none;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%235c7391' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
@@ -148,41 +190,76 @@
   }
   .card-search-input:focus { border-color: var(--border-accent); }
   .card-search-input::placeholder { color: var(--text3); }
-  .card-search-select { background: var(--surface2); border: 1px solid var(--border-strong); color: var(--text2); border-radius: 8px; padding: 0.35rem 0.6rem; font-size: 11px; font-family: inherit; outline: none; cursor: pointer; }
+  .card-search-select {
+    background: var(--surface2); border: 1px solid var(--border-strong); color: var(--text2);
+    border-radius: 8px; padding: 0.35rem 0.6rem; font-size: 11px; font-family: inherit; outline: none; cursor: pointer;
+  }
   .card-search-select option { background: var(--surface2); }
 
+  /* TABLES */
   .data-table { width:100%; border-collapse:collapse; font-size:12.5px; }
-  .data-table th { text-align:left; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text2); padding: 0 8px 11px 0; border-bottom: 1px solid var(--border-strong); cursor:pointer; user-select:none; white-space:nowrap; transition: color 0.15s; }
+  .data-table th {
+    text-align:left; font-size:10.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.6px; color:var(--text2); padding: 0 8px 11px 0;
+    border-bottom: 1px solid var(--border-strong); cursor:pointer; user-select:none; white-space:nowrap;
+    transition: color 0.15s;
+  }
   .data-table th:hover { color:var(--text); }
   .data-table th .sort-icon { opacity:0.35; margin-left:3px; }
   .data-table th.sorted { color: var(--accent); }
   .data-table th.sorted .sort-icon { opacity:1; color:var(--accent); }
-  .data-table td { padding: 10px 8px 10px 0; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; font-weight: 500; transition: background 0.12s; }
+  .data-table td {
+    padding: 10px 8px 10px 0; border-bottom: 1px solid var(--border);
+    color: var(--text); vertical-align: middle; font-weight: 500;
+    transition: background 0.12s;
+  }
   .data-table tbody tr:hover td { background: var(--surface2); }
   .data-table tr:last-child td { border-bottom: none; }
-  .data-table td.name { color: var(--text); font-weight: 700; }
+  .data-table td.name { color: var(--text); font-weight: 600; }
   .data-table td.mono { font-family:'DM Mono',monospace; font-size:11.5px; color:var(--text2); font-weight:700; }
-  .data-table td.desc-cell { color:var(--text2); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11.5px; }
+  .data-table td.accent-cell { font-family:'DM Mono',monospace; font-size:11.5px; color:var(--accent); font-weight:700; }
+  .data-table td.desc-cell { color:var(--text2); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11.5px; }
   .row-count { font-size:11px; color:var(--text2); font-family:'DM Mono',monospace; margin-top:9px; display:block; }
 
-  .pill { display:inline-flex; align-items:center; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; letter-spacing:0.2px; white-space:nowrap; }
-  .pill-active   { background:rgba(61,186,128,0.15); color:#80e8b8; border:1px solid rgba(61,186,128,0.28); }
-  .pill-inactive { background:rgba(208,80,80,0.15);  color:#e89090; border:1px solid rgba(208,80,80,0.28); }
-  .pill-prospect { background:rgba(65,168,200,0.15); color:#90c8f8; border:1px solid rgba(65,168,200,0.28); }
-  .pill-pending  { background:rgba(212,160,48,0.15); color:#e8c870; border:1px solid rgba(212,160,48,0.28); }
-  .pill-default  { background:var(--surface3); color:var(--text3); border:1px solid var(--border); }
+  /* DATE HIGHLIGHT */
+  .overdue  { color: var(--red)   !important; font-weight:700 !important; }
+  .due-today{ color: var(--amber) !important; font-weight:700 !important; }
+  .upcoming { color: var(--green) !important; }
 
-  .stat-row { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
-  .stat-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-  .stat-label { font-size:12.5px; color:var(--text); width:140px; flex-shrink:0; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .stat-track { flex:1; height:6px; background:var(--surface3); border-radius:4px; overflow:hidden; }
-  .stat-fill { height:100%; border-radius:4px; transition:width 0.8s cubic-bezier(.4,0,.2,1); }
-  .stat-n { font-size:12px; font-weight:700; width:24px; text-align:right; font-family:'DM Mono',monospace; }
+  /* PILLS */
+  .pill { display:inline-flex; align-items:center; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; letter-spacing:0.2px; }
+  .pill-green   { background:rgba(61,186,128,0.15); color:#80e8b8; border:1px solid rgba(61,186,128,0.28); }
+  .pill-blue    { background:rgba(65,168,200,0.15); color:#90c8f8; border:1px solid rgba(65,168,200,0.28); }
+  .pill-amber   { background:rgba(212,160,48,0.15); color:#e8c870; border:1px solid rgba(212,160,48,0.28); }
+  .pill-purple  { background:rgba(144,96,208,0.15); color:#c8a8f8; border:1px solid rgba(144,96,208,0.28); }
+  .pill-red     { background:rgba(208,80,80,0.15);  color:#e89090; border:1px solid rgba(208,80,80,0.28); }
+  .pill-teal    { background:rgba(62,207,207,0.15); color:#7ae8e8; border:1px solid rgba(62,207,207,0.28); }
+  .pill-default { background:var(--surface3); color:var(--text3); border:1px solid var(--border); }
 
-  .notice { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:var(--radius); padding:0.75rem 1rem; font-size:12px; color:var(--amber); margin-bottom:1.4rem; display:none; align-items:center; gap:8px; }
+  /* CARGO TIMELINE */
+  .cargo-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .cargo-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .cargo-po { font-weight: 700; color: var(--accent); font-size: 0.92rem; }
+  .cargo-customer { color: var(--text3); font-size: 0.78rem; margin-top: 2px; }
+  .cargo-timeline { display: flex; gap: 0; overflow-x: auto; padding-bottom: 4px; }
+  .timeline-step { display: flex; flex-direction: column; align-items: center; min-width: 90px; position: relative; }
+  .timeline-step:not(:last-child)::after { content: ''; position: absolute; top: 11px; left: 50%; width: 100%; height: 2px; background: var(--border); z-index: 0; }
+  .timeline-step.done::after { background: var(--green); }
+  .step-dot { width: 22px; height: 22px; border-radius: 50%; background: var(--surface3); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; z-index: 1; position: relative; }
+  .timeline-step.done   .step-dot { background: var(--green); border-color: var(--green); color: #000; }
+  .timeline-step.active .step-dot { background: var(--accent); border-color: var(--accent); color: #000; }
+  .step-label { font-size: 0.6rem; color: var(--text3); text-align: center; margin-top: 5px; line-height: 1.3; max-width: 85px; }
+  .step-date { font-size: 0.58rem; color: var(--blue); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+  /* NOTICE */
+  .notice { background: rgba(212,160,48,0.08); border:1px solid rgba(212,160,48,0.25); border-radius:var(--radius); padding:0.75rem 1rem; font-size:12px; color:var(--amber); margin-bottom:1.4rem; display:none; align-items:center; gap:8px; }
   .notice.show { display:flex; }
-  .footer { margin-top:2.5rem; font-size:11px; color:var(--text2); text-align:center; font-family:'DM Mono',monospace; letter-spacing:0.3px; }
+
+  /* ROW 2 grid */
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+
   .empty { color:var(--text2); font-size:12px; text-align:center; padding:2rem 0; }
+  .footer { margin-top:2.5rem; font-size:11px; color:var(--text2); text-align:center; font-family:'DM Mono',monospace; letter-spacing:0.3px; }
 
   @media(max-width:900px){ .kpi-grid{grid-template-columns:repeat(3,1fr)} .row2{grid-template-columns:1fr} }
   @media(max-width:600px){ .kpi-grid{grid-template-columns:repeat(2,1fr)} }
@@ -191,36 +268,40 @@
 </head>
 <body>
 
+<!-- LOADING -->
 <div id="loading-screen">
   <div class="loader-box">
     <div class="spinner"></div>
     <div class="loader-title">Loading dashboard…</div>
-    <div class="loader-sub" id="load-msg">Fetching company data from Google Sheets</div>
+    <div class="loader-sub" id="load-msg">Connect your Google Sheet to get started</div>
   </div>
 </div>
 
+<!-- ERROR -->
 <div id="error-screen">
   <div class="error-box">
     <div class="error-icon">⚠️</div>
     <div class="error-title">Could not load data</div>
-    <div class="error-msg" id="error-msg">Make sure the sheet is published: File → Share → Publish to web → Each tab as CSV.</div>
-    <button class="retry-btn" onclick="loadAll()">
+    <div class="error-msg" id="error-msg">Make sure the Google Sheet is published to the web and the URL is correct.</div>
+    <button class="retry-btn" onclick="retryLoad()">
       <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.54"/></svg>
       Retry
     </button>
   </div>
 </div>
 
+<!-- DASHBOARD -->
 <div id="dashboard">
 
+  <!-- TOP BAR -->
   <div class="topbar">
     <div class="brand">
       <div class="brand-icon">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>
       </div>
       <div>
         <div class="brand-name">Vishak Tech</div>
-        <div class="brand-sub">Company Directory</div>
+        <div class="brand-sub">Work Order & Cargo Pipeline</div>
       </div>
     </div>
     <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;" id="file-info">—</div>
@@ -230,133 +311,148 @@
         <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.54"/></svg>
         Refresh
       </button>
-      <a class="hbtn" id="open-sheet-link" href="#" target="_blank" style="display:none">
+      <a class="hbtn" id="open-sheet-btn" href="https://docs.google.com/spreadsheets/d/16RP9I8VDTDx4E2TAE8QVkA31sdegR6jW/edit" target="_blank">
         <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         Open Sheet
       </a>
     </div>
   </div>
 
-  <div class="notice" id="publish-notice">
-    ℹ️ No data returned — confirm the "Company" tab is published: <strong>File → Share → Publish to web → comma-separated values</strong>
-  </div>
+  <!-- STATUS BAR -->
+  <div id="status-bar"></div>
 
+  <!-- KPI GRID -->
   <div class="kpi-grid">
     <div class="kpi k1">
-      <div class="kpi-label">Total Companies</div>
+      <div class="kpi-label">Total Orders</div>
       <div class="kpi-val" id="kpi-total">—</div>
-      <div class="kpi-sub">All records</div>
-    </div>
-    <div class="kpi k2">
-      <div class="kpi-label">Active</div>
-      <div class="kpi-val" id="kpi-active">—</div>
-      <div class="kpi-sub">Active companies</div>
+      <div class="kpi-sub">Work orders tracked</div>
     </div>
     <div class="kpi k3">
-      <div class="kpi-label">Prospects</div>
-      <div class="kpi-val" id="kpi-prospect">—</div>
-      <div class="kpi-sub">Potential clients</div>
+      <div class="kpi-label">In Progress</div>
+      <div class="kpi-val" id="kpi-inprog">—</div>
+      <div class="kpi-sub">Active production</div>
     </div>
-    <div class="kpi k4">
-      <div class="kpi-label">Industries</div>
-      <div class="kpi-val" id="kpi-industries">—</div>
-      <div class="kpi-sub">Unique sectors</div>
+    <div class="kpi k2">
+      <div class="kpi-label">QC Done</div>
+      <div class="kpi-val" id="kpi-qcdone">—</div>
+      <div class="kpi-sub">Passed quality check</div>
+    </div>
+    <div class="kpi k1">
+      <div class="kpi-label">Dispatched</div>
+      <div class="kpi-val" id="kpi-dispatched">—</div>
+      <div class="kpi-sub">Orders shipped</div>
     </div>
     <div class="kpi k5">
-      <div class="kpi-label">Inactive</div>
-      <div class="kpi-val" id="kpi-inactive">—</div>
-      <div class="kpi-sub">Inactive companies</div>
+      <div class="kpi-label">Overdue</div>
+      <div class="kpi-val" id="kpi-overdue">—</div>
+      <div class="kpi-sub">Past next action date</div>
     </div>
     <div class="kpi k6">
-      <div class="kpi-label">Pending</div>
+      <div class="kpi-label">Pending Prod.</div>
       <div class="kpi-val" id="kpi-pending">—</div>
-      <div class="kpi-sub">Awaiting follow-up</div>
+      <div class="kpi-sub">Yet to start production</div>
     </div>
   </div>
 
-  <div class="filter-bar">
-    <span class="filter-label">🔍 Filters</span>
-    <input class="filter-input" type="text" id="global-search" placeholder="Search company, contact, city…" oninput="renderTable()">
-    <select class="filter-select" id="filter-status" onchange="renderTable()">
-      <option value="">All Statuses</option>
-    </select>
-    <select class="filter-select" id="filter-industry" onchange="renderTable()">
-      <option value="">All Industries</option>
-    </select>
-    <button class="clear-btn" onclick="clearFilters()">✕ Clear</button>
-    <span class="filter-count" id="filter-summary"></span>
-  </div>
-
+  <!-- CHARTS ROW -->
   <div class="row2">
     <div class="card">
       <div class="card-title">
         <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        Company status breakdown
+        Production stage pipeline
       </div>
-      <div id="status-bars"></div>
-      <div style="position:relative;width:100%;height:160px;margin-top:1rem;"><canvas id="statusChart" role="img"></canvas></div>
+      <div id="prod-bars"></div>
+      <div style="position:relative;width:100%;height:160px;margin-top:1rem;"><canvas id="prodChart" role="img"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title">
         <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        Industry distribution
+        Status overview
       </div>
-      <div id="industry-bars"></div>
+      <div id="status-bars"></div>
     </div>
   </div>
 
+  <!-- WORK ORDER TABLE -->
   <div class="card">
     <div class="card-title">
-      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      Company directory
+      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      Work Orders
     </div>
     <div class="card-search">
-      <input class="card-search-input" type="text" id="table-search" placeholder="Search name, contact, city…" oninput="renderTable()">
-      <select class="card-search-select" id="table-status-filter" onchange="renderTable()">
-        <option value="">All statuses</option>
-      </select>
-      <select class="card-search-select" id="table-industry-filter" onchange="renderTable()">
-        <option value="">All industries</option>
-      </select>
+      <input class="card-search-input" type="text" id="wo-search" placeholder="Search WO#, customer, PO…" oninput="renderWOTable()">
+      <select class="card-search-select" id="filter-prod" onchange="renderWOTable()"><option value="">All Production</option></select>
+      <select class="card-search-select" id="filter-qc" onchange="renderWOTable()"><option value="">All QC</option></select>
+      <select class="card-search-select" id="filter-dispatch" onchange="renderWOTable()"><option value="">All Dispatch</option></select>
+      <select class="card-search-select" id="filter-status" onchange="renderWOTable()"><option value="">All Status</option></select>
+      <button class="clear-btn" id="clear-filters-btn" onclick="clearFilters()" style="display:none">✕ Clear</button>
     </div>
     <div style="overflow-x:auto">
-      <table class="data-table">
+      <table class="data-table" id="wo-table">
         <thead><tr>
-          <th onclick="sortCol('Company Name')">Company <span class="sort-icon">↕</span></th>
-          <th onclick="sortCol('Contact Person')">Contact <span class="sort-icon">↕</span></th>
-          <th onclick="sortCol('Phone')">Phone <span class="sort-icon">↕</span></th>
-          <th onclick="sortCol('Email')">Email <span class="sort-icon">↕</span></th>
-          <th onclick="sortCol('Industry')">Industry <span class="sort-icon">↕</span></th>
-          <th onclick="sortCol('City')">City <span class="sort-icon">↕</span></th>
-          <th onclick="sortCol('Status')">Status <span class="sort-icon">↕</span></th>
-          <th onclick="sortCol('Remarks')">Remarks <span class="sort-icon">↕</span></th>
+          <th onclick="sortWO('Work Order No.')">WO # <span class="sort-icon">↕</span></th>
+          <th onclick="sortWO('Date')">Date <span class="sort-icon">↕</span></th>
+          <th onclick="sortWO('Customer Name')">Customer <span class="sort-icon">↕</span></th>
+          <th onclick="sortWO('PO No.')">PO No. <span class="sort-icon">↕</span></th>
+          <th>Description</th>
+          <th>Outsourcing</th>
+          <th onclick="sortWO('Production Stage')">Production <span class="sort-icon">↕</span></th>
+          <th onclick="sortWO('QC Status')">QC <span class="sort-icon">↕</span></th>
+          <th onclick="sortWO('Packing Status')">Packing <span class="sort-icon">↕</span></th>
+          <th onclick="sortWO('Dispatch Status')">Dispatch <span class="sort-icon">↕</span></th>
+          <th onclick="sortWO('Current Status')">Status <span class="sort-icon">↕</span></th>
+          <th onclick="sortWO('Next Action Date')">Next Action <span class="sort-icon">↕</span></th>
+          <th>Remarks</th>
         </tr></thead>
-        <tbody id="company-tbody">
-          <tr><td colspan="8" class="empty">Loading…</td></tr>
-        </tbody>
+        <tbody id="wo-tbody"><tr><td colspan="13" class="empty">Connect a Google Sheet to load work orders</td></tr></tbody>
       </table>
     </div>
-    <span class="row-count" id="table-count"></span>
+    <span class="row-count" id="wo-count"></span>
+  </div>
+
+  <!-- CARGO PIPELINE -->
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      Cargo pipeline
+    </div>
+
+    <!-- Cargo KPI row -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:1rem;" id="cargo-kpi-row"></div>
+
+    <div class="card-search">
+      <input class="card-search-input" type="text" id="cargo-search" placeholder="Search PO / Customer…" oninput="renderCargo()">
+    </div>
+    <div id="cargo-cards"><div class="empty">Connect a Cargo Pipeline Google Sheet to load data</div></div>
   </div>
 
   <div class="footer" id="footer-ts">—</div>
 </div>
 
 <script>
-// ══════════════════════════════════════════════
-//  CONFIG — change SHEET_ID and TAB as needed
-// ══════════════════════════════════════════════
-const SHEET_ID = '16RP9I8VDTDx4E2TAE8QVkA31sdegR6jW';
-const TAB      = 'Company';
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
+//  CONFIG — Sheet IDs and tab names
+// ─────────────────────────────────────────────
+const WO_SHEET_ID    = '16RP9I8VDTDx4E2TAE8QVkA31sdegR6jW';
+const WO_TAB         = 'Work Order';   // ← tab name for work orders
+const CARGO_TAB      = 'Cargo';        // ← tab name for cargo (leave empty '' to skip)
 
-let _data = [];
-let _sort = { col: null, asc: true };
-
-function csvUrl() {
-  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(TAB)}`;
+function csvUrl(tab) {
+  return `https://docs.google.com/spreadsheets/d/${WO_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
 }
 
+// ─────────────────────────────────────────────
+//  DATA STORE
+// ─────────────────────────────────────────────
+let woData    = [];
+let cargoData = [];
+let woSort    = { col: null, asc: true };
+let prodChartInstance = null;
+
+// ─────────────────────────────────────────────
+//  CSV PARSER
+// ─────────────────────────────────────────────
 function parseCSV(text) {
   const lines = []; let cur = '', inQ = false, row = [];
   for (let i = 0; i < text.length; i++) {
@@ -378,204 +474,382 @@ function parseCSV(text) {
   });
 }
 
+// ─────────────────────────────────────────────
+//  LOAD ALL DATA
+// ─────────────────────────────────────────────
 async function loadAll() {
   show('loading-screen');
-  hide('error-screen'); hide('dashboard');
+  hide('error-screen');
   try {
-    const resp = await fetch(csvUrl());
-    if (!resp.ok) throw new Error(`HTTP ${resp.status} for tab "${TAB}"`);
-    _data = parseCSV(await resp.text());
-    renderDashboard();
+    // Load Work Orders
+    const woResp = await fetch(csvUrl(WO_TAB));
+    if (!woResp.ok) throw new Error(`HTTP ${woResp.status} — tab "${WO_TAB}" not found. Make sure the sheet is published.`);
+    woData = parseCSV(await woResp.text());
+
+    // Load Cargo (optional)
+    if (CARGO_TAB) {
+      try {
+        const cResp = await fetch(csvUrl(CARGO_TAB));
+        if (cResp.ok) cargoData = parseCSV(await cResp.text());
+      } catch(e) { /* non-fatal */ }
+    }
+
+    renderAll();
+    hide('loading-screen');
+    show('dashboard');
+    clearTimeout(window._refreshTimer);
+    window._refreshTimer = setTimeout(loadAll, 5 * 60 * 1000);
   } catch(e) {
     console.error(e);
     hide('loading-screen');
     document.getElementById('error-msg').textContent =
-      `${e.message}. Make sure the sheet is published: File → Share → Publish to web → Each tab as CSV.`;
+      `${e.message}. Publish the sheet via: File → Share → Publish to web → Each tab as CSV.`;
     document.getElementById('error-screen').classList.add('show');
   }
 }
 
-function renderDashboard() {
-  document.getElementById('publish-notice').classList.toggle('show', _data.length === 0);
+function retryLoad() {
+  document.getElementById('error-screen').classList.remove('show');
+  loadAll();
+}
 
-  const statuses   = _data.map(r => String(r['Status'] || '').toLowerCase().trim());
-  const active     = statuses.filter(s => s === 'active').length;
-  const prospect   = statuses.filter(s => s === 'prospect').length;
-  const inactive   = statuses.filter(s => s === 'inactive').length;
-  const pending    = statuses.filter(s => s === 'pending').length;
-  const industries = new Set(_data.map(r => r['Industry']).filter(Boolean)).size;
+window.onload = () => loadAll();
 
-  set('kpi-total',      _data.length);
-  set('kpi-active',     active);
-  set('kpi-prospect',   prospect);
-  set('kpi-industries', industries);
-  set('kpi-inactive',   inactive);
-  set('kpi-pending',    pending);
-
-  const allStatuses   = [...new Set(_data.map(r => r['Status']).filter(Boolean))].sort();
-  const allIndustries = [...new Set(_data.map(r => r['Industry']).filter(Boolean))].sort();
-
-  populateSel('filter-status',          allStatuses,   'All Statuses');
-  populateSel('filter-industry',        allIndustries, 'All Industries');
-  populateSel('table-status-filter',    allStatuses,   'All statuses');
-  populateSel('table-industry-filter',  allIndustries, 'All industries');
-
-  renderBars('status-bars',   'Status',   ['#3dba80','#d05050','#41a8c8','#d4a030','#9060d0','#e07040']);
-  renderBars('industry-bars', 'Industry', ['#41a8c8','#9060d0','#e07040','#3dba80','#d4a030','#d05050','#3db8c8','#e07890']);
-
-  renderStatusDoughnut(['#3dba80','#d05050','#41a8c8','#d4a030','#9060d0','#e07040']);
-
-  renderTable();
-
+// ─────────────────────────────────────────────
+//  RENDER ALL
+// ─────────────────────────────────────────────
+function renderAll() {
+  renderKPIs();
+  populateFilters();
+  renderWOTable();
+  renderCharts();
+  renderCargoKPIs();
+  renderCargo();
   const now = new Date().toLocaleString();
   set('file-info', `Google Sheets · refreshed ${now}`);
-  set('footer-ts', `Live data · Last refreshed: ${now} · Auto-refresh every 5 min`);
-
-  const link = document.getElementById('open-sheet-link');
-  link.href = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
-  link.style.display = 'flex';
-
-  hide('loading-screen');
-  const dash = document.getElementById('dashboard');
-  dash.style.display = 'block'; dash.classList.add('visible');
-
-  clearTimeout(window._refreshTimer);
-  window._refreshTimer = setTimeout(loadAll, 5 * 60 * 1000);
+  set('footer-ts', `Last refreshed: ${now} · Auto-refresh every 5 min`);
 }
 
-let _statusChartInstance = null;
+// ─────────────────────────────────────────────
+//  KPIs
+// ─────────────────────────────────────────────
+function renderKPIs() {
+  const total      = woData.length;
+  const inProg     = woData.filter(r => { const s=(r['Current Status']||'').toUpperCase(); return !['DONE','DISPATCHED','COMPLETED','QC DONE'].includes(s) && s !== ''; }).length;
+  const qcDone     = woData.filter(r => (r['QC Status']||'').toUpperCase() === 'DONE').length;
+  const dispatched = woData.filter(r => { const s=(r['Dispatch Status']||'').toUpperCase(); return s==='DONE'||s==='DISPATCHED'; }).length;
+  const pending    = woData.filter(r => (r['Production Stage']||'').toUpperCase() === 'PENDING').length;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const overdue = woData.filter(r => { const d=parseDate(r['Next Action Date']); return d && d < today; }).length;
+  set('kpi-total', total); set('kpi-inprog', inProg); set('kpi-qcdone', qcDone);
+  set('kpi-dispatched', dispatched); set('kpi-overdue', overdue); set('kpi-pending', pending);
+}
 
-function renderStatusDoughnut(palette) {
-  const counts = {};
-  _data.forEach(r => { const v = r['Status'] || 'Unknown'; counts[v] = (counts[v] || 0) + 1; });
-  const entries = Object.entries(counts).sort((a,b) => b[1] - a[1]);
-  if (_statusChartInstance) { _statusChartInstance.destroy(); _statusChartInstance = null; }
+// ─────────────────────────────────────────────
+//  CHARTS
+// ─────────────────────────────────────────────
+function renderCharts() {
+  // Production bars
+  const stageCounts = {};
+  woData.forEach(r => { const s = r['Production Stage']||'Unknown'; stageCounts[s] = (stageCounts[s]||0)+1; });
+  const STAGE_COLORS = { 'COMPLETED':'#3dba80','IN PROGRESS':'#41a8c8','RELEASED':'#9060d0','PENDING':'#d4a030','Unknown':'#5c7391' };
+  const entries = Object.entries(stageCounts);
+  const maxV = Math.max(...entries.map(([,n])=>n), 1);
+  set('prod-bars', entries.map(([s,n]) => {
+    const col = STAGE_COLORS[s.toUpperCase()] || STAGE_COLORS['Unknown'];
+    const pct = Math.round(n/maxV*100);
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
+      <span style="font-size:12.5px;color:var(--text);width:110px;flex-shrink:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s}</span>
+      <div style="flex:1;height:6px;background:var(--surface3);border-radius:4px;overflow:hidden"><div style="width:${pct}%;height:100%;border-radius:4px;background:linear-gradient(90deg,${col}99,${col});transition:width 0.8s cubic-bezier(.4,0,.2,1)"></div></div>
+      <span style="font-size:12px;font-weight:700;width:22px;text-align:right;font-family:'DM Mono',monospace;color:${col}">${n}</span>
+    </div>`;
+  }).join('') || '<div class="empty">No data</div>');
+
+  if (prodChartInstance) { prodChartInstance.destroy(); prodChartInstance = null; }
   if (entries.length) {
-    _statusChartInstance = new Chart(document.getElementById('statusChart'), {
+    prodChartInstance = new Chart(document.getElementById('prodChart'), {
       type: 'doughnut',
-      data: {
-        labels: entries.map(([s]) => s),
-        datasets: [{ data: entries.map(([,n]) => n), backgroundColor: entries.map((_,i) => palette[i % palette.length]), borderWidth: 2, borderColor: '#1e2720' }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, cutout: '65%',
-        plugins: {
-          legend: { display: true, position: 'bottom', labels: { color: '#b8d8c4', font: { size: 11, family: 'DM Sans' }, padding: 8, boxWidth: 10, boxHeight: 10 } },
-          tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw}` } }
-        }
-      }
+      data: { labels: entries.map(([s])=>s), datasets:[{ data: entries.map(([,n])=>n), backgroundColor: entries.map(([s])=>STAGE_COLORS[s.toUpperCase()]||STAGE_COLORS['Unknown']), borderWidth:2, borderColor:'#1e2720' }] },
+      options: { responsive:true, maintainAspectRatio:false, cutout:'65%', plugins:{ legend:{display:true,position:'bottom',labels:{color:'#b8d8c4',font:{size:11,family:'DM Sans'},padding:8,boxWidth:10,boxHeight:10}}, tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw}`}} } }
     });
   }
-}
 
-function renderBars(containerId, field, palette) {
-  const counts = {};
-  _data.forEach(r => { const v = r[field] || 'Unknown'; counts[v] = (counts[v] || 0) + 1; });
-  const entries = Object.entries(counts).sort((a,b) => b[1] - a[1]);
-  const maxV = Math.max(...entries.map(([,n]) => n), 1);
-  set(containerId, entries.map(([label, n], i) => {
-    const col = palette[i % palette.length];
-    const pct = Math.round(n / maxV * 100);
-    return `<div class="stat-row">
-      <div class="stat-dot" style="background:${col}"></div>
-      <span class="stat-label" style="color:${col}">${label}</span>
-      <div class="stat-track"><div class="stat-fill" style="width:${pct}%;background:linear-gradient(90deg,${col}99,${col})"></div></div>
-      <span class="stat-n" style="color:${col}">${n}</span>
+  // Status bars
+  const stCounts = {};
+  woData.forEach(r => { const s = r['Current Status']||'Unknown'; stCounts[s] = (stCounts[s]||0)+1; });
+  const stEntries = Object.entries(stCounts);
+  const stMax = Math.max(...stEntries.map(([,n])=>n), 1);
+  const stColors = ['#3dba80','#41a8c8','#e07040','#9060d0','#d4a030','#d05050','#5c7391','#3db8c8','#e0a040'];
+  set('status-bars', stEntries.map(([s,n],i) => {
+    const col = stColors[i % stColors.length];
+    const pct = Math.round(n/stMax*100);
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
+      <span style="font-size:12.5px;color:var(--text);width:140px;flex-shrink:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s}</span>
+      <div style="flex:1;height:6px;background:var(--surface3);border-radius:4px;overflow:hidden"><div style="width:${pct}%;height:100%;border-radius:4px;background:linear-gradient(90deg,${col}99,${col});transition:width 0.8s cubic-bezier(.4,0,.2,1)"></div></div>
+      <span style="font-size:12px;font-weight:700;width:22px;text-align:right;font-family:'DM Mono',monospace;color:${col}">${n}</span>
     </div>`;
   }).join('') || '<div class="empty">No data</div>');
 }
 
-function renderTable() {
-  const gq  = (document.getElementById('global-search').value || '').toLowerCase();
-  const tq  = (document.getElementById('table-search').value  || '').toLowerCase();
-  const gst = document.getElementById('filter-status').value   || '';
-  const gin = document.getElementById('filter-industry').value || '';
-  const tst = document.getElementById('table-status-filter').value   || '';
-  const tin = document.getElementById('table-industry-filter').value || '';
-
-  const activeStatus   = gst || tst;
-  const activeIndustry = gin || tin;
-
-  let rows = _data.filter(r => {
-    if (gq && !Object.values(r).some(v => v && String(v).toLowerCase().includes(gq))) return false;
-    if (tq && !Object.values(r).some(v => v && String(v).toLowerCase().includes(tq))) return false;
-    if (activeStatus   && (r['Status']   || '') !== activeStatus)   return false;
-    if (activeIndustry && (r['Industry'] || '') !== activeIndustry) return false;
-    return true;
-  });
-
-  if (_sort.col) {
-    rows = [...rows].sort((a, b) => {
-      const va = a[_sort.col] || '', vb = b[_sort.col] || '';
-      return _sort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
-    });
-  }
-
-  const activeFilters = [gq, gst, gin].filter(Boolean).length;
-  const fsum = document.getElementById('filter-summary');
-  if (fsum) fsum.textContent = activeFilters ? `${activeFilters} filter${activeFilters > 1 ? 's' : ''} active` : '';
-
-  if (rows.length === 0) {
-    set('company-tbody', '<tr><td colspan="8" class="empty">No companies match the current filters</td></tr>');
-    set('table-count', '');
-    return;
-  }
-
-  set('company-tbody', rows.map(r => `<tr>
-    <td class="name">${trunc(r['Company Name'] || '—', 32)}</td>
-    <td>${trunc(r['Contact Person'] || '—', 24)}</td>
-    <td class="mono">${r['Phone'] || '—'}</td>
-    <td class="desc-cell" title="${r['Email'] || ''}">${trunc(r['Email'] || '—', 30)}</td>
-    <td>${trunc(r['Industry'] || '—', 22)}</td>
-    <td>${r['City'] || '—'}</td>
-    <td>${statusPill(r['Status'])}</td>
-    <td class="desc-cell" title="${r['Remarks'] || ''}">${trunc(r['Remarks'] || '—', 36)}</td>
-  </tr>`).join(''));
-
-  const cnt = document.getElementById('table-count');
-  if (cnt) cnt.textContent = rows.length !== _data.length ? `Showing ${rows.length} of ${_data.length} records` : `${rows.length} records`;
+// ─────────────────────────────────────────────
+//  FILTERS
+// ─────────────────────────────────────────────
+function populateFilters() {
+  fillSel('filter-prod',     woData, 'Production Stage', 'All Production');
+  fillSel('filter-qc',       woData, 'QC Status',        'All QC');
+  fillSel('filter-dispatch', woData, 'Dispatch Status',  'All Dispatch');
+  fillSel('filter-status',   woData, 'Current Status',   'All Status');
 }
-
-function statusPill(v) {
-  if (!v) return '<span class="pill pill-default">—</span>';
-  const u = v.toLowerCase().trim();
-  if (u === 'active')   return `<span class="pill pill-active">${v}</span>`;
-  if (u === 'inactive') return `<span class="pill pill-inactive">${v}</span>`;
-  if (u === 'prospect') return `<span class="pill pill-prospect">${v}</span>`;
-  if (u === 'pending')  return `<span class="pill pill-pending">${v}</span>`;
-  return `<span class="pill pill-default">${v}</span>`;
-}
-
-function sortCol(col) {
-  if (_sort.col === col) _sort.asc = !_sort.asc;
-  else { _sort.col = col; _sort.asc = true; }
-  document.querySelectorAll('.data-table th.sorted').forEach(t => t.classList.remove('sorted'));
-  const cols = ['Company Name','Contact Person','Phone','Email','Industry','City','Status','Remarks'];
-  const idx = cols.indexOf(col);
-  const ths = document.querySelectorAll('.data-table th');
-  if (idx >= 0 && ths[idx]) ths[idx].classList.add('sorted');
-  renderTable();
-}
-
-function clearFilters() {
-  ['global-search','filter-status','filter-industry','table-search','table-status-filter','table-industry-filter']
-    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  renderTable();
-}
-
-function populateSel(id, vals, dflt) {
-  const sel = document.getElementById(id); if (!sel) return;
+function fillSel(id, data, col, dflt) {
+  const sel = document.getElementById(id);
+  const vals = [...new Set(data.map(r=>r[col]).filter(v=>v))].sort();
   const cur = sel.value;
-  sel.innerHTML = `<option value="">${dflt}</option>` + vals.map(v => `<option value="${v}">${v}</option>`).join('');
+  sel.innerHTML = `<option value="">${dflt}</option>` + vals.map(v=>`<option value="${v}">${v}</option>`).join('');
   if (vals.includes(cur)) sel.value = cur;
 }
 
-function trunc(s, n) { const t = String(s || ''); return t.length > n ? t.slice(0, n) + '…' : t; }
-function set(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; }
-function show(id) { const el = document.getElementById(id); if (el) el.style.display = ''; }
-function hide(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+// ─────────────────────────────────────────────
+//  WORK ORDER TABLE
+// ─────────────────────────────────────────────
+function sortWO(col) {
+  if (woSort.col === col) woSort.asc = !woSort.asc; else { woSort.col = col; woSort.asc = true; }
+  renderWOTable();
+}
 
-loadAll();
+function clearFilters() {
+  document.getElementById('wo-search').value = '';
+  document.getElementById('filter-prod').value = '';
+  document.getElementById('filter-qc').value = '';
+  document.getElementById('filter-dispatch').value = '';
+  document.getElementById('filter-status').value = '';
+  renderWOTable();
+}
+
+function renderWOTable() {
+  const search    = (document.getElementById('wo-search').value||'').toLowerCase();
+  const fProd     = document.getElementById('filter-prod').value;
+  const fQC       = document.getElementById('filter-qc').value;
+  const fDispatch = document.getElementById('filter-dispatch').value;
+  const fStatus   = document.getElementById('filter-status').value;
+
+  const anyActive = search || fProd || fQC || fDispatch || fStatus;
+  const clearBtn  = document.getElementById('clear-filters-btn');
+  if (clearBtn) clearBtn.style.display = anyActive ? '' : 'none';
+
+  let rows = woData.filter(r => {
+    if (fProd     && r['Production Stage'] !== fProd)    return false;
+    if (fQC       && r['QC Status']        !== fQC)      return false;
+    if (fDispatch && r['Dispatch Status']  !== fDispatch) return false;
+    if (fStatus   && r['Current Status']   !== fStatus)  return false;
+    if (search) {
+      const hay = [r['Work Order No.'],r['Customer Name'],r['PO No.'],r['Order Description']].join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  if (woSort.col) {
+    rows.sort((a,b) => {
+      const va=a[woSort.col]||'', vb=b[woSort.col]||'';
+      return woSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  }
+
+  if (rows.length === 0) {
+    set('wo-tbody','<tr><td colspan="13" class="empty">No orders match the current filters</td></tr>');
+    set('wo-count','');
+    return;
+  }
+
+  set('wo-tbody', rows.map(r => {
+    const nad = r['Next Action Date'];
+    const nadCls = dateClass(nad);
+    return `<tr>
+      <td class="accent-cell">${r['Work Order No.']||'—'}</td>
+      <td class="mono">${r['Date']||'—'}</td>
+      <td class="name">${trunc(r['Customer Name']||'—',28)}</td>
+      <td class="mono">${r['PO No.']||'—'}</td>
+      <td class="desc-cell" title="${r['Order Description']||''}">${trunc(r['Order Description']||'—',35)}</td>
+      <td>${outsourcingBadge(r['Outsourcing Status'])}</td>
+      <td>${stageBadge(r['Production Stage'])}</td>
+      <td>${qcBadge(r['QC Status'])}</td>
+      <td>${packBadge(r['Packing Status'])}</td>
+      <td>${dispatchBadge(r['Dispatch Status'])}</td>
+      <td>${statusBadge(r['Current Status'])}</td>
+      <td class="${nadCls} mono">${nad||'—'}</td>
+      <td class="desc-cell" title="${r['Remarks']||''}">${trunc(r['Remarks']||'—',30)}</td>
+    </tr>`;
+  }).join(''));
+
+  const el = document.getElementById('wo-count');
+  if (el) el.textContent = rows.length !== woData.length ? `Showing ${rows.length} of ${woData.length} records` : `${rows.length} records`;
+}
+
+// ─────────────────────────────────────────────
+//  CARGO
+// ─────────────────────────────────────────────
+const CARGO_STAGES = [
+  { key:'Our End Pick Up Date',         label:'Pickup\nOur End' },
+  { key:'Forwarder End Reaching Date',  label:'Forwarder\nReceived' },
+  { key:'Forwarder Despatch Date',      label:'Forwarder\nDespatch' },
+  { key:'Customs Clearance Date',       label:'Customs\nClearance' },
+  { key:'After Customs Clearance',      label:'Post-\nCustoms' },
+  { key:'Port Final Dispatch Date',     label:'Port\nDispatch' },
+  { key:'Cargo Start Date',             label:'Cargo\nStarted' },
+  { key:'Moving Date',                  label:'Moving' },
+  { key:'Reach Destination',            label:'Destination\nReached' },
+  { key:'Customer End Reaching Date',   label:'Customer\nDelivered' },
+];
+
+function renderCargoKPIs() {
+  const total     = cargoData.length;
+  const dispatched= cargoData.filter(r=>r['Port Final Dispatch Date']).length;
+  const inTransit = cargoData.filter(r=>r['Cargo Start Date']&&!r['Customer End Reaching Date']).length;
+  const arrived   = cargoData.filter(r=>r['Customer End Reaching Date']).length;
+  const pickup    = cargoData.filter(r=>r['Our End Pick Up Date']&&!r['Cargo Start Date']).length;
+
+  const kpi = (label, val, col) =>
+    `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 16px;min-width:90px">
+      <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:3px">${label}</div>
+      <div style="font-size:26px;font-weight:800;font-family:'DM Mono',monospace;color:${col}">${val}</div>
+    </div>`;
+  set('cargo-kpi-row',
+    kpi('Total POs',   total,      'var(--text)') +
+    kpi('Awaiting Pickup', pickup, 'var(--amber)') +
+    kpi('In Transit',  inTransit,  'var(--blue)') +
+    kpi('Arrived',     arrived,    'var(--green)') +
+    kpi('Port Dispatched', dispatched, 'var(--text2)')
+  );
+}
+
+function renderCargo() {
+  const search = (document.getElementById('cargo-search').value||'').toLowerCase();
+  let rows = cargoData.filter(r => {
+    if (!search) return true;
+    return [r['PO No.'],r['Customer Name'],r['Work Order No.']].join(' ').toLowerCase().includes(search);
+  });
+
+  if (rows.length === 0) {
+    set('cargo-cards','<div class="empty">No cargo entries found</div>');
+    return;
+  }
+
+  set('cargo-cards', rows.map(r => {
+    const doneCount = CARGO_STAGES.filter(s => r[s.key]).length;
+    const activeIdx = doneCount < CARGO_STAGES.length ? doneCount : CARGO_STAGES.length - 1;
+    const steps = CARGO_STAGES.map((s,i) => {
+      const done   = !!r[s.key];
+      const active = i === activeIdx && !done;
+      const cls    = done ? 'done' : active ? 'active' : '';
+      const icon   = done ? '✓' : active ? '●' : '';
+      const date   = r[s.key] ? `<div class="step-date">${r[s.key]}</div>` : '';
+      return `<div class="timeline-step ${cls}"><div class="step-dot">${icon}</div><div class="step-label">${s.label.replace('\n','<br>')}${date}</div></div>`;
+    }).join('');
+    const progress = Math.round((doneCount / CARGO_STAGES.length) * 100);
+    return `<div class="cargo-card">
+      <div class="cargo-header">
+        <div><div class="cargo-po">${r['PO No.']||'—'} <span style="color:var(--text3);font-size:0.76rem;font-family:'DM Mono',monospace">${r['Work Order No.']||''}</span></div><div class="cargo-customer">${r['Customer Name']||'—'}</div></div>
+        <div style="text-align:right"><div style="font-size:0.7rem;color:var(--text3)">Progress</div><div style="font-size:1.3rem;font-weight:800;color:${progress===100?'var(--green)':'var(--accent)'}">${progress}%</div></div>
+      </div>
+      <div class="cargo-timeline">${steps}</div>
+      ${r['Remarks']?`<div style="margin-top:10px;font-size:0.74rem;color:var(--text3);font-style:italic">📝 ${r['Remarks']}</div>`:''}
+    </div>`;
+  }).join(''));
+}
+
+// ─────────────────────────────────────────────
+//  BADGE HELPERS
+// ─────────────────────────────────────────────
+function stageBadge(v) {
+  if (!v) return pill('—','default');
+  const u = v.toUpperCase();
+  if (u==='COMPLETED')  return pill(v,'green');
+  if (u==='RELEASED')   return pill(v,'teal');
+  if (u==='IN PROGRESS')return pill(v,'blue');
+  if (u==='PENDING')    return pill(v,'amber');
+  return pill(v,'default');
+}
+function qcBadge(v) {
+  if (!v) return pill('—','default');
+  const u = v.toUpperCase();
+  if (u==='DONE')    return pill(v,'green');
+  if (u==='PENDING') return pill(v,'amber');
+  if (u==='FAILED')  return pill(v,'red');
+  return pill(v,'default');
+}
+function packBadge(v) {
+  if (!v) return pill('—','default');
+  const u = v.toUpperCase();
+  if (u==='DONE'||u==='COMPLETED') return pill(v,'green');
+  if (u==='IN PROGRESS') return pill(v,'blue');
+  return pill(v,'default');
+}
+function dispatchBadge(v) {
+  if (!v) return pill('—','default');
+  const u = v.toUpperCase();
+  if (u==='DONE'||u==='DISPATCHED') return pill(v,'green');
+  if (u==='PENDING') return pill(v,'amber');
+  return pill(v,'default');
+}
+function statusBadge(v) {
+  if (!v) return pill('—','default');
+  const u = v.toUpperCase();
+  if (u.includes('DONE')||u.includes('COMPLETED')||u.includes('DISPATCH')) return pill(v,'green');
+  if (u.includes('PROGRESS')) return pill(v,'blue');
+  if (u.includes('QC')) return pill(v,'teal');
+  if (u.includes('WAIT')||u.includes('PENDING')) return pill(v,'amber');
+  return pill(v,'default');
+}
+function outsourcingBadge(v) {
+  if (!v) return pill('—','default');
+  const u = v.toUpperCase();
+  if (u==='NO NEED')     return pill(v,'default');
+  if (u==='TRANSFERRED') return pill(v,'teal');
+  if (u==='PENDING')     return pill(v,'amber');
+  return pill(v,'blue');
+}
+function pill(text, color) { return `<span class="pill pill-${color}">${text}</span>`; }
+
+// ─────────────────────────────────────────────
+//  DATE UTILS
+// ─────────────────────────────────────────────
+function parseDate(str) {
+  if (!str) return null;
+  const p = str.split('/');
+  if (p.length===3) return new Date(+p[2], +p[1]-1, +p[0]);
+  const d = new Date(str);
+  return isNaN(d) ? null : d;
+}
+function dateClass(str) {
+  const d = parseDate(str);
+  if (!d) return 'mono';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.floor((d - today) / 86400000);
+  if (diff < 0) return 'overdue mono';
+  if (diff === 0) return 'due-today mono';
+  if (diff <= 3) return 'upcoming mono';
+  return 'mono';
+}
+
+// ─────────────────────────────────────────────
+//  STATUS BAR
+// ─────────────────────────────────────────────
+function setStatus(type, msg) {
+  const bar = document.getElementById('status-bar');
+  bar.innerHTML = msg;
+  bar.className = 'show ' + type;
+  if (type === 'success') setTimeout(() => bar.classList.remove('show'), 5000);
+}
+
+// ─────────────────────────────────────────────
+//  TINY UTILS
+// ─────────────────────────────────────────────
+function set(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; }
+function trunc(s, n) { const t=String(s||''); return t.length>n ? t.slice(0,n)+'…' : t; }
+function show(id) { const el=document.getElementById(id); if (el) { el.style.display=''; if (el.classList.contains('hidden')) el.classList.remove('hidden'); if (id==='dashboard') el.classList.add('visible'); } }
+function hide(id) { const el=document.getElementById(id); if (el) { el.style.display='none'; el.classList.add('hidden'); } }
 </script>
 </body>
 </html>
