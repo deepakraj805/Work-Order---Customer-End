@@ -547,7 +547,15 @@ function renderCharts() {
   // Production bars
   const stageCounts = {};
   woData.forEach(r => { const s = r['Production Stage']||'Unknown'; stageCounts[s] = (stageCounts[s]||0)+1; });
-  const STAGE_COLORS = { 'COMPLETED':'#3dba80','IN PROGRESS':'#41a8c8','RELEASED':'#9060d0','PENDING':'#d4a030','Unknown':'#5c7391' };
+  const STAGE_COLORS = {
+    'NOT STARTED': '#64748b',
+    'IN PROGRESS':  '#f59e0b',
+    'IN PROCESS':   '#f59e0b',
+    'RELEASED':     '#a78bfa',
+    'COMPLETED':    '#3dba80',
+    'PENDING':      '#fb923c',
+    'Unknown':      '#374151'
+  };
   const entries = Object.entries(stageCounts);
   const maxV = Math.max(...entries.map(([,n])=>n), 1);
   set('prod-bars', entries.map(([s,n]) => {
