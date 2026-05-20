@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vishak Tech — Company Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #0f1210;
+    --bg2:      #131713;
+    --surface:  #181f1a;
+    --surface2: #1e2720;
+    --surface3: #253028;
+    --surface4: #2c3930;
+    --border:        rgba(80,180,120,0.12);
+    --border-strong: rgba(80,180,120,0.24);
+    --border-accent: rgba(80,180,120,0.52);
+    --text:  #f2faf5;
+    --text2: #b8d8c4;
+    --text3: #7aa890;
+    --accent:      #e07040;
+    --accent2:     #f0905a;
+    --accent-glow: rgba(224,112,64,0.22);
+    --blue:   #41a8c8;
+    --green:  #3dba80;
+    --amber:  #d4a030;
+    --purple: #9060d0;
+    --red:    #d05050;
+    --radius: 12px; --radius-lg: 16px; --radius-xl: 20px;
+  }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 100% 55% at 50% -5%,  rgba(224,112,64,0.06) 0%, transparent 55%),
+      radial-gradient(ellipse  60% 40% at 95% 100%, rgba(61,186,128,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse  40% 30% at  0% 60%,  rgba(65,168,200,0.04) 0%, transparent 50%);
+    color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.6; font-weight: 500;
+  }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--surface4); }
+
+  #loading-screen {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; background: var(--bg); z-index: 100; transition: opacity 0.4s;
+  }
+  #loading-screen.hidden { opacity: 0; pointer-events: none; }
+  .loader-box { text-align: center; }
+  .spinner { width: 38px; height: 38px; border: 2.5px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.75s linear infinite; margin: 0 auto 1.25rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loader-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+  .loader-sub { font-size: 12px; color: var(--text3); }
+
+  #error-screen { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); z-index: 99; padding: 2rem; }
+  #error-screen.show { display: flex; }
+  .error-box { width: min(500px,90vw); background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 2.5rem 2rem; text-align: center; }
+  .error-icon { font-size: 36px; margin-bottom: 1rem; }
+  .error-title { font-size: 17px; font-weight: 600; margin-bottom: 0.5rem; }
+  .error-msg { font-size: 13px; color: var(--text2); margin-bottom: 1.5rem; line-height: 1.6; }
+  .retry-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: white; border: none; border-radius: 8px; padding: 0.65rem 1.5rem; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.2s; box-shadow: 0 0 20px rgba(224,112,64,0.35); }
+  .retry-btn:hover { background: var(--accent2); }
+
+  #dashboard { display: none; max-width: 1300px; margin: 0 auto; padding: 1.5rem 1.5rem 3.5rem; }
+  #dashboard.visible { display: block; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border: 1px solid var(--border); border-bottom: 1px solid var(--border-strong);
+    border-radius: var(--radius-xl); padding: 0.85rem 1.4rem; margin-bottom: 1.4rem;
+    gap: 1rem; flex-wrap: wrap;
+    box-shadow: 0 1px 0 rgba(224,112,64,0.08), 0 6px 30px rgba(0,0,0,0.60);
+    backdrop-filter: blur(12px);
+  }
+  .brand { display: flex; align-items: center; gap: 11px; }
+  .brand-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #e07040, #b83018); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 0 18px rgba(224,112,64,0.40); }
+  .brand-icon svg { width: 17px; height: 17px; stroke: white; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .brand-name { font-size: 16px; font-weight: 800; letter-spacing: -0.4px; color: #ffffff; }
+  .brand-sub { font-size: 11px; color: var(--text2); margin-top: 1px; font-weight: 600; letter-spacing: 0.3px; }
+  .topbar-right { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .hbtn {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border-strong);
+    padding: 0.42rem 0.85rem; border-radius: 9px; font-size: 12px; font-weight: 600;
+    color: var(--text2); cursor: pointer; font-family: inherit; transition: all 0.18s;
+    white-space: nowrap; text-decoration: none;
+  }
+  .hbtn:hover { background: var(--surface3); color: var(--text); border-color: var(--border-accent); }
+  .hbtn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 6px var(--green)} 50%{opacity:0.4;box-shadow:0 0 2px var(--green)} }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; margin-bottom: 1.4rem; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.3rem 1.1rem; position: relative; overflow: hidden; transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; }
+  .kpi:hover { border-color: var(--border-accent); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  .kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; border-radius:16px 16px 0 0; }
+  .kpi.k1::before{background:linear-gradient(90deg,#e07040,#f09060)}
+  .kpi.k2::before{background:linear-gradient(90deg,#3dba80,#60d49a)}
+  .kpi.k3::before{background:linear-gradient(90deg,#41a8c8,#60c8e8)}
+  .kpi.k4::before{background:linear-gradient(90deg,#9b6fe0,#b890f8)}
+  .kpi-label { font-size:11px; color:var(--text2); font-weight:700; text-transform:uppercase; letter-spacing:0.7px; margin-bottom:4px; }
+  .kpi-val { font-size:38px; font-weight:800; line-height:1; font-family:'DM Mono',monospace; letter-spacing:-1.5px; }
+  .kpi.k1 .kpi-val{color:#f5b090}
+  .kpi.k2 .kpi-val{color:#80e8b8}
+  .kpi.k3 .kpi-val{color:#90c8f8}
+  .kpi.k4 .kpi-val{color:#c8a8f8}
+  .kpi-sub { font-size:11px; color:var(--text2); margin-top:7px; font-weight:600; }
+
+  .filter-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.65rem 1rem; margin-bottom: 1.4rem; }
+  .filter-label { font-size:11px; font-weight:800; color:var(--text2); text-transform:uppercase; letter-spacing:0.6px; margin-right:2px; white-space:nowrap; }
+  .filter-input {
+    background: var(--surface2); border: 1px solid var(--border-strong); color: var(--text);
+    border-radius: 8px; padding: 0.38rem 0.75rem 0.38rem 2.1rem; font-size: 12px; font-family: inherit;
+    outline: none; width: 200px; transition: border-color 0.18s, width 0.2s, box-shadow 0.18s;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c7391' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:9px center;
+  }
+  .filter-input:focus { border-color: var(--border-accent); width: 250px; box-shadow: 0 0 0 3px rgba(224,112,64,0.12); }
+  .filter-input::placeholder { color: var(--text3); }
+  .filter-select { background: var(--surface2); border: 1px solid var(--border-strong); color: var(--text2); border-radius: 8px; padding: 0.38rem 0.7rem; font-size: 12px; font-family: inherit; outline: none; cursor: pointer; transition: border-color 0.18s; }
+  .filter-select:focus { border-color: var(--border-accent); color: var(--text); }
+  .filter-select option { background: var(--surface2); }
+  .clear-btn { background: none; border: 1px solid var(--border-strong); color: var(--text3); border-radius: 8px; padding: 0.38rem 0.75rem; font-size: 11px; font-family: inherit; cursor: pointer; transition: all 0.18s; white-space: nowrap; }
+  .clear-btn:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.07); }
+  .filter-count { font-size:11px; color:var(--accent); font-family:'DM Mono',monospace; margin-left:auto; font-weight:600; }
+
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.4rem; transition: border-color 0.2s; margin-bottom: 16px; }
+  .card:hover { border-color: var(--border-strong); }
+  .card-title { font-size: 11.5px; font-weight: 800; color: var(--text); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 1.1rem; display: flex; align-items: center; gap: 8px; padding-bottom: 0.85rem; border-bottom: 1px solid var(--border); }
+  .card-title svg { width: 14px; height: 14px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; opacity: 0.9; }
+
+  .card-search { display:flex; align-items:center; gap:8px; margin-bottom:0.85rem; flex-wrap:wrap; }
+  .card-search-input {
+    flex:1; min-width:140px; background: var(--surface2); border: 1px solid var(--border-strong);
+    color: var(--text); border-radius: 8px; padding: 0.35rem 0.65rem 0.35rem 2rem; font-size: 12px;
+    font-family: inherit; outline: none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%235c7391' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:7px center; transition: border-color 0.18s;
+  }
+  .card-search-input:focus { border-color: var(--border-accent); }
+  .card-search-input::placeholder { color: var(--text3); }
+  .card-search-select { background: var(--surface2); border: 1px solid var(--border-strong); color: var(--text2); border-radius: 8px; padding: 0.35rem 0.6rem; font-size: 11px; font-family: inherit; outline: none; cursor: pointer; }
+  .card-search-select option { background: var(--surface2); }
+
+  .data-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .data-table th { text-align:left; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text2); padding: 0 8px 11px 0; border-bottom: 1px solid var(--border-strong); cursor:pointer; user-select:none; white-space:nowrap; transition: color 0.15s; }
+  .data-table th:hover { color:var(--text); }
+  .data-table th .sort-icon { opacity:0.35; margin-left:3px; }
+  .data-table th.sorted { color: var(--accent); }
+  .data-table th.sorted .sort-icon { opacity:1; color:var(--accent); }
+  .data-table td { padding: 10px 8px 10px 0; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; font-weight: 500; transition: background 0.12s; }
+  .data-table tbody tr:hover td { background: var(--surface2); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table td.name { color: var(--text); font-weight: 700; }
+  .data-table td.mono { font-family:'DM Mono',monospace; font-size:11.5px; color:var(--text2); font-weight:700; }
+  .data-table td.desc-cell { color:var(--text2); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11.5px; }
+  .row-count { font-size:11px; color:var(--text2); font-family:'DM Mono',monospace; margin-top:9px; display:block; }
+
+  .pill { display:inline-flex; align-items:center; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; letter-spacing:0.2px; white-space:nowrap; }
+  .pill-active   { background:rgba(61,186,128,0.15); color:#80e8b8; border:1px solid rgba(61,186,128,0.28); }
+  .pill-inactive { background:rgba(208,80,80,0.15);  color:#e89090; border:1px solid rgba(208,80,80,0.28); }
+  .pill-prospect { background:rgba(65,168,200,0.15); color:#90c8f8; border:1px solid rgba(65,168,200,0.28); }
+  .pill-pending  { background:rgba(212,160,48,0.15); color:#e8c870; border:1px solid rgba(212,160,48,0.28); }
+  .pill-default  { background:var(--surface3); color:var(--text3); border:1px solid var(--border); }
+
+  .stat-row { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+  .stat-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .stat-label { font-size:12.5px; color:var(--text); width:140px; flex-shrink:0; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .stat-track { flex:1; height:6px; background:var(--surface3); border-radius:4px; overflow:hidden; }
+  .stat-fill { height:100%; border-radius:4px; transition:width 0.8s cubic-bezier(.4,0,.2,1); }
+  .stat-n { font-size:12px; font-weight:700; width:24px; text-align:right; font-family:'DM Mono',monospace; }
+
+  .notice { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:var(--radius); padding:0.75rem 1rem; font-size:12px; color:var(--amber); margin-bottom:1.4rem; display:none; align-items:center; gap:8px; }
+  .notice.show { display:flex; }
+  .footer { margin-top:2.5rem; font-size:11px; color:var(--text2); text-align:center; font-family:'DM Mono',monospace; letter-spacing:0.3px; }
+  .empty { color:var(--text2); font-size:12px; text-align:center; padding:2rem 0; }
+
+  @media(max-width:700px){ .kpi-grid{grid-template-columns:1fr 1fr} .row2{grid-template-columns:1fr} }
+  @media(max-width:420px){ .kpi-grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="loader-box">
+    <div class="spinner"></div>
+    <div class="loader-title">Loading dashboard…</div>
+    <div class="loader-sub" id="load-msg">Fetching company data from Google Sheets</div>
+  </div>
+</div>
+
+<div id="error-screen">
+  <div class="error-box">
+    <div class="error-icon">⚠️</div>
+    <div class="error-title">Could not load data</div>
+    <div class="error-msg" id="error-msg">Make sure the sheet is published: File → Share → Publish to web → Each tab as CSV.</div>
+    <button class="retry-btn" onclick="loadAll()">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.54"/></svg>
+      Retry
+    </button>
+  </div>
+</div>
+
+<div id="dashboard">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">Vishak Tech</div>
+        <div class="brand-sub">Company Directory</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;" id="file-info">—</div>
+    <div class="topbar-right">
+      <div class="hbtn"><div class="live-dot"></div>&nbsp;Live</div>
+      <button class="hbtn" onclick="loadAll()">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.54"/></svg>
+        Refresh
+      </button>
+      <a class="hbtn" id="open-sheet-link" href="#" target="_blank" style="display:none">
+        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Open Sheet
+      </a>
+    </div>
+  </div>
+
+  <div class="notice" id="publish-notice">
+    ℹ️ No data returned — confirm the "Company" tab is published: <strong>File → Share → Publish to web → comma-separated values</strong>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi k1">
+      <div class="kpi-label">Total Companies</div>
+      <div class="kpi-val" id="kpi-total">—</div>
+      <div class="kpi-sub">All records</div>
+    </div>
+    <div class="kpi k2">
+      <div class="kpi-label">Active</div>
+      <div class="kpi-val" id="kpi-active">—</div>
+      <div class="kpi-sub">Active companies</div>
+    </div>
+    <div class="kpi k3">
+      <div class="kpi-label">Prospects</div>
+      <div class="kpi-val" id="kpi-prospect">—</div>
+      <div class="kpi-sub">Potential clients</div>
+    </div>
+    <div class="kpi k4">
+      <div class="kpi-label">Industries</div>
+      <div class="kpi-val" id="kpi-industries">—</div>
+      <div class="kpi-sub">Unique sectors</div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-label">🔍 Filters</span>
+    <input class="filter-input" type="text" id="global-search" placeholder="Search company, contact, city…" oninput="renderTable()">
+    <select class="filter-select" id="filter-status" onchange="renderTable()">
+      <option value="">All Statuses</option>
+    </select>
+    <select class="filter-select" id="filter-industry" onchange="renderTable()">
+      <option value="">All Industries</option>
+    </select>
+    <button class="clear-btn" onclick="clearFilters()">✕ Clear</button>
+    <span class="filter-count" id="filter-summary"></span>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Company status breakdown
+      </div>
+      <div id="status-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Industry distribution
+      </div>
+      <div id="industry-bars"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Company directory
+    </div>
+    <div class="card-search">
+      <input class="card-search-input" type="text" id="table-search" placeholder="Search name, contact, city…" oninput="renderTable()">
+      <select class="card-search-select" id="table-status-filter" onchange="renderTable()">
+        <option value="">All statuses</option>
+      </select>
+      <select class="card-search-select" id="table-industry-filter" onchange="renderTable()">
+        <option value="">All industries</option>
+      </select>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr>
+          <th onclick="sortCol('Company Name')">Company <span class="sort-icon">↕</span></th>
+          <th onclick="sortCol('Contact Person')">Contact <span class="sort-icon">↕</span></th>
+          <th onclick="sortCol('Phone')">Phone <span class="sort-icon">↕</span></th>
+          <th onclick="sortCol('Email')">Email <span class="sort-icon">↕</span></th>
+          <th onclick="sortCol('Industry')">Industry <span class="sort-icon">↕</span></th>
+          <th onclick="sortCol('City')">City <span class="sort-icon">↕</span></th>
+          <th onclick="sortCol('Status')">Status <span class="sort-icon">↕</span></th>
+          <th onclick="sortCol('Remarks')">Remarks <span class="sort-icon">↕</span></th>
+        </tr></thead>
+        <tbody id="company-tbody">
+          <tr><td colspan="8" class="empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <span class="row-count" id="table-count"></span>
+  </div>
+
+  <div class="footer" id="footer-ts">—</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONFIG — change SHEET_ID and TAB as needed
+// ══════════════════════════════════════════════
+const SHEET_ID = '16RP9I8VDTDx4E2TAE8QVkA31sdegR6jW';
+const TAB      = 'Company';
+// ══════════════════════════════════════════════
+
+let _data = [];
+let _sort = { col: null, asc: true };
+
+function csvUrl() {
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(TAB)}`;
+}
+
+function parseCSV(text) {
+  const lines = []; let cur = '', inQ = false, row = [];
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') { if (inQ && text[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (c === ',' && !inQ) { row.push(cur.trim()); cur = ''; }
+    else if ((c === '\n' || c === '\r') && !inQ) {
+      if (c === '\r' && text[i+1] === '\n') i++;
+      row.push(cur.trim()); cur = ''; lines.push(row); row = [];
+    } else cur += c;
+  }
+  if (cur || row.length) { row.push(cur.trim()); lines.push(row); }
+  if (lines.length < 2) return [];
+  const headers = lines[0].map(h => h.replace(/^"|"$/g, '').trim());
+  return lines.slice(1).filter(r => r.some(c => c !== '')).map(r => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (r[i] || '').replace(/^"|"$/g, '').trim() || null; });
+    return obj;
+  });
+}
+
+async function loadAll() {
+  show('loading-screen');
+  hide('error-screen'); hide('dashboard');
+  try {
+    const resp = await fetch(csvUrl());
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} for tab "${TAB}"`);
+    _data = parseCSV(await resp.text());
+    renderDashboard();
+  } catch(e) {
+    console.error(e);
+    hide('loading-screen');
+    document.getElementById('error-msg').textContent =
+      `${e.message}. Make sure the sheet is published: File → Share → Publish to web → Each tab as CSV.`;
+    document.getElementById('error-screen').classList.add('show');
+  }
+}
+
+function renderDashboard() {
+  document.getElementById('publish-notice').classList.toggle('show', _data.length === 0);
+
+  const statuses   = _data.map(r => String(r['Status'] || '').toLowerCase().trim());
+  const active     = statuses.filter(s => s === 'active').length;
+  const prospect   = statuses.filter(s => s === 'prospect').length;
+  const industries = new Set(_data.map(r => r['Industry']).filter(Boolean)).size;
+
+  set('kpi-total',      _data.length);
+  set('kpi-active',     active);
+  set('kpi-prospect',   prospect);
+  set('kpi-industries', industries);
+
+  const allStatuses   = [...new Set(_data.map(r => r['Status']).filter(Boolean))].sort();
+  const allIndustries = [...new Set(_data.map(r => r['Industry']).filter(Boolean))].sort();
+
+  populateSel('filter-status',          allStatuses,   'All Statuses');
+  populateSel('filter-industry',        allIndustries, 'All Industries');
+  populateSel('table-status-filter',    allStatuses,   'All statuses');
+  populateSel('table-industry-filter',  allIndustries, 'All industries');
+
+  renderBars('status-bars',   'Status',   ['#3dba80','#d05050','#41a8c8','#d4a030','#9060d0','#e07040']);
+  renderBars('industry-bars', 'Industry', ['#41a8c8','#9060d0','#e07040','#3dba80','#d4a030','#d05050','#3db8c8','#e07890']);
+
+  renderTable();
+
+  const now = new Date().toLocaleString();
+  set('file-info', `Google Sheets · refreshed ${now}`);
+  set('footer-ts', `Live data · Last refreshed: ${now} · Auto-refresh every 5 min`);
+
+  const link = document.getElementById('open-sheet-link');
+  link.href = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
+  link.style.display = 'flex';
+
+  hide('loading-screen');
+  const dash = document.getElementById('dashboard');
+  dash.style.display = 'block'; dash.classList.add('visible');
+
+  clearTimeout(window._refreshTimer);
+  window._refreshTimer = setTimeout(loadAll, 5 * 60 * 1000);
+}
+
+function renderBars(containerId, field, palette) {
+  const counts = {};
+  _data.forEach(r => { const v = r[field] || 'Unknown'; counts[v] = (counts[v] || 0) + 1; });
+  const entries = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+  const maxV = Math.max(...entries.map(([,n]) => n), 1);
+  set(containerId, entries.map(([label, n], i) => {
+    const col = palette[i % palette.length];
+    const pct = Math.round(n / maxV * 100);
+    return `<div class="stat-row">
+      <div class="stat-dot" style="background:${col}"></div>
+      <span class="stat-label" style="color:${col}">${label}</span>
+      <div class="stat-track"><div class="stat-fill" style="width:${pct}%;background:linear-gradient(90deg,${col}99,${col})"></div></div>
+      <span class="stat-n" style="color:${col}">${n}</span>
+    </div>`;
+  }).join('') || '<div class="empty">No data</div>');
+}
+
+function renderTable() {
+  const gq  = (document.getElementById('global-search').value || '').toLowerCase();
+  const tq  = (document.getElementById('table-search').value  || '').toLowerCase();
+  const gst = document.getElementById('filter-status').value   || '';
+  const gin = document.getElementById('filter-industry').value || '';
+  const tst = document.getElementById('table-status-filter').value   || '';
+  const tin = document.getElementById('table-industry-filter').value || '';
+
+  const activeStatus   = gst || tst;
+  const activeIndustry = gin || tin;
+
+  let rows = _data.filter(r => {
+    if (gq && !Object.values(r).some(v => v && String(v).toLowerCase().includes(gq))) return false;
+    if (tq && !Object.values(r).some(v => v && String(v).toLowerCase().includes(tq))) return false;
+    if (activeStatus   && (r['Status']   || '') !== activeStatus)   return false;
+    if (activeIndustry && (r['Industry'] || '') !== activeIndustry) return false;
+    return true;
+  });
+
+  if (_sort.col) {
+    rows = [...rows].sort((a, b) => {
+      const va = a[_sort.col] || '', vb = b[_sort.col] || '';
+      return _sort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  }
+
+  const activeFilters = [gq, gst, gin].filter(Boolean).length;
+  const fsum = document.getElementById('filter-summary');
+  if (fsum) fsum.textContent = activeFilters ? `${activeFilters} filter${activeFilters > 1 ? 's' : ''} active` : '';
+
+  if (rows.length === 0) {
+    set('company-tbody', '<tr><td colspan="8" class="empty">No companies match the current filters</td></tr>');
+    set('table-count', '');
+    return;
+  }
+
+  set('company-tbody', rows.map(r => `<tr>
+    <td class="name">${trunc(r['Company Name'] || '—', 32)}</td>
+    <td>${trunc(r['Contact Person'] || '—', 24)}</td>
+    <td class="mono">${r['Phone'] || '—'}</td>
+    <td class="desc-cell" title="${r['Email'] || ''}">${trunc(r['Email'] || '—', 30)}</td>
+    <td>${trunc(r['Industry'] || '—', 22)}</td>
+    <td>${r['City'] || '—'}</td>
+    <td>${statusPill(r['Status'])}</td>
+    <td class="desc-cell" title="${r['Remarks'] || ''}">${trunc(r['Remarks'] || '—', 36)}</td>
+  </tr>`).join(''));
+
+  const cnt = document.getElementById('table-count');
+  if (cnt) cnt.textContent = rows.length !== _data.length ? `Showing ${rows.length} of ${_data.length} records` : `${rows.length} records`;
+}
+
+function statusPill(v) {
+  if (!v) return '<span class="pill pill-default">—</span>';
+  const u = v.toLowerCase().trim();
+  if (u === 'active')   return `<span class="pill pill-active">${v}</span>`;
+  if (u === 'inactive') return `<span class="pill pill-inactive">${v}</span>`;
+  if (u === 'prospect') return `<span class="pill pill-prospect">${v}</span>`;
+  if (u === 'pending')  return `<span class="pill pill-pending">${v}</span>`;
+  return `<span class="pill pill-default">${v}</span>`;
+}
+
+function sortCol(col) {
+  if (_sort.col === col) _sort.asc = !_sort.asc;
+  else { _sort.col = col; _sort.asc = true; }
+  document.querySelectorAll('.data-table th.sorted').forEach(t => t.classList.remove('sorted'));
+  const cols = ['Company Name','Contact Person','Phone','Email','Industry','City','Status','Remarks'];
+  const idx = cols.indexOf(col);
+  const ths = document.querySelectorAll('.data-table th');
+  if (idx >= 0 && ths[idx]) ths[idx].classList.add('sorted');
+  renderTable();
+}
+
+function clearFilters() {
+  ['global-search','filter-status','filter-industry','table-search','table-status-filter','table-industry-filter']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  renderTable();
+}
+
+function populateSel(id, vals, dflt) {
+  const sel = document.getElementById(id); if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">${dflt}</option>` + vals.map(v => `<option value="${v}">${v}</option>`).join('');
+  if (vals.includes(cur)) sel.value = cur;
+}
+
+function trunc(s, n) { const t = String(s || ''); return t.length > n ? t.slice(0, n) + '…' : t; }
+function set(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; }
+function show(id) { const el = document.getElementById(id); if (el) el.style.display = ''; }
+function hide(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+
+loadAll();
+</script>
+</body>
+</html>
