@@ -973,25 +973,12 @@ const CARGO_STAGES = [
   { key:'Customer End Reaching Date',   label:'Customer\nDelivered' },
 ];
 
-// Fuzzy key resolver: matches object keys case-insensitively, ignoring extra spaces.
-// Also handles common spelling variants (Despatch/Dispatch).
-function resolveKey(row, key) {
-  if (row[key] != null) return row[key]; // exact match first
-  const norm = s => s.toLowerCase().replace(/\s+/g,' ').trim()
-                      .replace(/dispatch/g,'despatch'); // treat dispatch=despatch
-  const normKey = norm(key);
-  for (const k of Object.keys(row)) {
-    if (norm(k) === normKey) return row[k];
-  }
-  return null;
-}
-
 function renderCargoKPIs() {
   const total     = cargoData.length;
-  const dispatched= cargoData.filter(r=>resolveKey(r,'Port Final Dispatch Date')).length;
-  const inTransit = cargoData.filter(r=>resolveKey(r,'Cargo Start Date')&&!resolveKey(r,'Customer End Reaching Date')).length;
-  const arrived   = cargoData.filter(r=>resolveKey(r,'Customer End Reaching Date')).length;
-  const pickup    = cargoData.filter(r=>resolveKey(r,'Our End Pick Up Date')&&!resolveKey(r,'Cargo Start Date')).length;
+  const dispatched= cargoData.filter(r=>r['Port Final Dispatch Date']).length;
+  const inTransit = cargoData.filter(r=>r['Cargo Start Date']&&!r['Customer End Reaching Date']).length;
+  const arrived   = cargoData.filter(r=>r['Customer End Reaching Date']).length;
+  const pickup    = cargoData.filter(r=>r['Our End Pick Up Date']&&!r['Cargo Start Date']).length;
 
   const kpi = (label, val, col) =>
     `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 16px;min-width:90px">
@@ -1020,15 +1007,14 @@ function renderCargo() {
   }
 
   set('cargo-cards', rows.map(r => {
-    const doneCount = CARGO_STAGES.filter(s => resolveKey(r, s.key)).length;
+    const doneCount = CARGO_STAGES.filter(s => r[s.key]).length;
     const activeIdx = doneCount < CARGO_STAGES.length ? doneCount : CARGO_STAGES.length - 1;
     const steps = CARGO_STAGES.map((s,i) => {
-      const val    = resolveKey(r, s.key);
-      const done   = !!val;
+      const done   = !!r[s.key];
       const active = i === activeIdx && !done;
       const cls    = done ? 'done' : active ? 'active' : '';
       const icon   = done ? '✓' : active ? '●' : '';
-      const date   = val ? `<div class="step-date">${val}</div>` : '';
+      const date   = r[s.key] ? `<div class="step-date">${r[s.key]}</div>` : '';
       return `<div class="timeline-step ${cls}"><div class="step-dot">${icon}</div><div class="step-label">${s.label.replace('\n','<br>')}${date}</div></div>`;
     }).join('');
     const progress = Math.round((doneCount / CARGO_STAGES.length) * 100);
