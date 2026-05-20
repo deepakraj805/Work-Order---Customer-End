@@ -760,40 +760,48 @@ function renderCargo() {
 function stageBadge(v) {
   if (!v) return pill('—','default');
   const u = v.toUpperCase();
-  if (u==='COMPLETED')  return pill(v,'green');
-  if (u==='RELEASED')   return pill(v,'teal');
-  if (u==='IN PROGRESS')return pill(v,'blue');
-  if (u==='PENDING')    return pill(v,'amber');
+  if (u==='COMPLETED')    return pill(v,'green');
+  if (u==='RELEASED')     return pill(v,'teal');
+  if (u==='IN PROGRESS')  return pill(v,'blue');
+  if (u==='NOT STARTED')  return pill(v,'default');
+  if (u==='PENDING')      return pill(v,'amber');
   return pill(v,'default');
 }
 function qcBadge(v) {
   if (!v) return pill('—','default');
   const u = v.toUpperCase();
-  if (u==='DONE')    return pill(v,'green');
-  if (u==='PENDING') return pill(v,'amber');
-  if (u==='FAILED')  return pill(v,'red');
+  if (u==='PASSED')   return pill(v,'green');
+  if (u==='DONE')     return pill(v,'green');
+  if (u==='PENDING')  return pill(v,'amber');
+  if (u==='REWORK')   return pill(v,'red');
+  if (u==='FAILED')   return pill(v,'red');
   return pill(v,'default');
 }
 function packBadge(v) {
   if (!v) return pill('—','default');
   const u = v.toUpperCase();
-  if (u==='DONE'||u==='COMPLETED') return pill(v,'green');
-  if (u==='IN PROGRESS') return pill(v,'blue');
+  if (u==='PACKED'||u==='DONE'||u==='COMPLETED') return pill(v,'green');
+  if (u==='IN PACKING'||u==='IN PROGRESS')       return pill(v,'blue');
+  if (u==='NOT STARTED')                          return pill(v,'default');
   return pill(v,'default');
 }
 function dispatchBadge(v) {
   if (!v) return pill('—','default');
   const u = v.toUpperCase();
-  if (u==='DONE'||u==='DISPATCHED') return pill(v,'green');
-  if (u==='PENDING') return pill(v,'amber');
+  if (u==='DISPATCHED'||u==='DONE') return pill(v,'green');
+  if (u==='READY')                  return pill(v,'teal');
+  if (u==='PENDING')                return pill(v,'amber');
   return pill(v,'default');
 }
 function statusBadge(v) {
   if (!v) return pill('—','default');
   const u = v.toUpperCase();
+  if (u==='READY FOR DISPATCH')   return pill(v,'green');
+  if (u==='QC DONE')              return pill(v,'teal');
+  if (u==='IN PROGRESS')          return pill(v,'blue');
   if (u.includes('DONE')||u.includes('COMPLETED')||u.includes('DISPATCH')) return pill(v,'green');
-  if (u.includes('PROGRESS')) return pill(v,'blue');
-  if (u.includes('QC')) return pill(v,'teal');
+  if (u.includes('QC'))           return pill(v,'teal');
+  if (u.includes('PROGRESS'))     return pill(v,'blue');
   if (u.includes('WAIT')||u.includes('PENDING')) return pill(v,'amber');
   return pill(v,'default');
 }
