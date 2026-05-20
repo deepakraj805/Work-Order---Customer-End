@@ -382,7 +382,7 @@
         Status overview
       </div>
       <div id="status-bars"></div>
-      <div style="position:relative;width:100%;height:170px;margin-top:1.1rem;">
+      <div style="position:relative;width:100%;height:185px;margin-top:1.2rem;">
         <canvas id="statusChart" role="img"></canvas>
       </div>
       <div id="status-chart-center" style="position:absolute;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;"></div>
@@ -617,21 +617,42 @@ function renderCharts() {
     </div>`;
   }).join('') || '<div class="empty">No data</div>');
 
-  // Status donut chart
+  // Status bar chart
   if (statusChartInstance) { statusChartInstance.destroy(); statusChartInstance = null; }
   if (stEntries.length) {
     const total = stEntries.reduce((a,[,n])=>a+n,0);
     statusChartInstance = new Chart(document.getElementById('statusChart'), {
-      type: 'doughnut',
+      type: 'bar',
       data: {
         labels: stEntries.map(([s])=>s),
-        datasets: [{ data: stEntries.map(([,n])=>n), backgroundColor: stEntries.map(([,n],i)=>stColors[i%stColors.length]), borderWidth: 2, borderColor: '#1e2720', hoverOffset: 6 }]
+        datasets: [{
+          data: stEntries.map(([,n])=>n),
+          backgroundColor: stEntries.map(([,n],i)=>stColors[i%stColors.length]+'cc'),
+          borderColor:      stEntries.map(([,n],i)=>stColors[i%stColors.length]),
+          borderWidth: 1.5,
+          borderRadius: 6,
+          borderSkipped: false,
+          barThickness: 22
+        }]
       },
       options: {
-        responsive: true, maintainAspectRatio: false, cutout: '68%',
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { display: true, position: 'bottom', labels: { color: '#b8d8c4', font: { size: 11, family: 'DM Sans' }, padding: 10, boxWidth: 10, boxHeight: 10 } },
-          tooltip: { callbacks: { label: c => \` \${c.label}: \${c.raw} (\${Math.round(c.raw/total*100)}%)\` } }
+          legend: { display: false },
+          tooltip: { callbacks: { label: c => ' ' + c.raw + ' orders (' + Math.round(c.raw/total*100) + '%)' } }
+        },
+        scales: {
+          x: {
+            beginAtZero: true, ticks: { color: '#7a9a8a', font: { size: 11 }, stepSize: 1 },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            border: { color: 'rgba(255,255,255,0.08)' }
+          },
+          y: {
+            ticks: { color: '#b8d8c4', font: { size: 11, weight: '600', family: 'DM Sans' } },
+            grid: { display: false },
+            border: { display: false }
+          }
         }
       }
     });
