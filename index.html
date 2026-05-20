@@ -637,8 +637,8 @@
 //  CONFIG — Sheet IDs and tab names
 // ─────────────────────────────────────────────
 const WO_SHEET_ID    = '16RP9I8VDTDx4E2TAE8QVkA31sdegR6jW';
-const WO_TAB         = 'Work Order';   // ← tab name for work orders
-const CARGO_TAB      = 'Cargo';        // ← tab name for cargo (leave empty '' to skip)
+const WO_TAB         = 'Work Order Flow';   // ← tab name for work orders
+const CARGO_TAB      = 'Cargo Pipeline';    // ← tab name for cargo (leave empty '' to skip)
 
 function csvUrl(tab) {
   return `https://docs.google.com/spreadsheets/d/${WO_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
@@ -688,9 +688,9 @@ const DEMO_WO = [
   { 'Work Order No.':'WO-005','Date':'21/05/2026','Customer Name':'Customer E','PO No.':'VST-2026-PO05','Order Description':'Valve set','Outsourcing Status':'NO NEED','Production Stage':'NOT STARTED','QC Status':'PENDING','Packing Status':'NOT STARTED','Current Status':'NOT STARTED','Dispatch Status':'PENDING','Remarks':'Awaiting material','Next Action Date':'25/05/2026' }
 ];
 const DEMO_CARGO = [
-  { 'PO No.':'VST-2026-PO01','Customer Name':'Customer A','Work Order No.':'WO-001','Our End Pick Up Date':'20/05/2026' },
-  { 'PO No.':'VST-2026-PO02','Customer Name':'Customer B','Work Order No.':'WO-002','Our End Pick Up Date':'21/05/2026','Forwarder End Reaching Date':'23/05/2026' },
-  { 'PO No.':'VST-2026-PO03','Customer Name':'Customer C','Work Order No.':'WO-003','Our End Pick Up Date':'19/05/2026','Forwarder End Reaching Date':'21/05/2026','Forwarder Despatch Date':'22/05/2026','Port Final Dispatch Date':'24/05/2026' }
+  { 'PO No.':'VST-2026-PO01','Customer Name':'Customer A','Work Order No.':'WO-001','Quotation':'Q-001','Our End Pick Up Date':'20/05/2026' },
+  { 'PO No.':'VST-2026-PO02','Customer Name':'Customer B','Work Order No.':'WO-002','Quotation':'Q-002','Our End Pick Up Date':'21/05/2026','Forwarder End Reaching Date':'23/05/2026' },
+  { 'PO No.':'VST-2026-PO03','Customer Name':'Customer C','Work Order No.':'WO-003','Quotation':'Q-003','Our End Pick Up Date':'19/05/2026','Forwarder End Reaching Date':'21/05/2026','Forwarder Despatch Date':'22/05/2026','Port Final Dispatch Date':'24/05/2026' }
 ];
 
 async function loadAll() {
@@ -724,7 +724,7 @@ async function loadAll() {
     hide('loading-screen');
     show('dashboard');
     // Show a soft notice instead of error screen
-    showBar('⚠️ Sheet not connected — showing demo data. Publish your Google Sheet to see live data.', 'loading');
+    setStatus('loading', '⚠️ Sheet not connected — showing demo data. Publish your Google Sheet to see live data.');
   }
 }
 
@@ -961,6 +961,7 @@ function renderWOTable() {
 //  CARGO
 // ─────────────────────────────────────────────
 const CARGO_STAGES = [
+  { key:'Quotation',                    label:'Quotation' },
   { key:'Our End Pick Up Date',         label:'Pickup\nOur End' },
   { key:'Forwarder End Reaching Date',  label:'Forwarder\nReceived' },
   { key:'Forwarder Despatch Date',      label:'Forwarder\nDespatch' },
