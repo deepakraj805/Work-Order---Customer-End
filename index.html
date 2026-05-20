@@ -493,6 +493,19 @@ function parseCSV(text) {
 // ─────────────────────────────────────────────
 //  LOAD ALL DATA
 // ─────────────────────────────────────────────
+const DEMO_WO = [
+  { 'Work Order No.':'WO-001','Date':'20/05/2026','Customer Name':'Customer A','PO No.':'VST-2026-PO01','Order Description':'Blade & filter items','Outsourcing Status':'NO NEED','Production Stage':'NOT STARTED','QC Status':'PENDING','Packing Status':'NOT STARTED','Current Status':'IN PROGRESS','Dispatch Status':'PENDING','Remarks':'Ready for production','Next Action Date':'20/05/2026' },
+  { 'Work Order No.':'WO-002','Date':'20/05/2026','Customer Name':'Customer B','PO No.':'VST-2026-PO02','Order Description':'Hydraulic cylinder','Outsourcing Status':'COMPLETED','Production Stage':'RELEASED','QC Status':'PASSED','Packing Status':'PACKED','Current Status':'QC DONE','Dispatch Status':'READY','Remarks':'Waiting for packing','Next Action Date':'21/05/2026' },
+  { 'Work Order No.':'WO-003','Date':'20/05/2026','Customer Name':'Customer C','PO No.':'VST-2026-PO03','Order Description':'Blade & filter items','Outsourcing Status':'TRANSFERRED','Production Stage':'COMPLETED','QC Status':'REWORK','Packing Status':'IN PACKING','Current Status':'READY FOR DISPATCH','Dispatch Status':'DISPATCHED','Remarks':'Ready for production','Next Action Date':'20/05/2026' },
+  { 'Work Order No.':'WO-004','Date':'21/05/2026','Customer Name':'Customer D','PO No.':'VST-2026-PO04','Order Description':'Gear assembly','Outsourcing Status':'NO NEED','Production Stage':'COMPLETED','QC Status':'PASSED','Packing Status':'PACKED','Current Status':'IN PROGRESS','Dispatch Status':'READY','Remarks':'Final inspection done','Next Action Date':'22/05/2026' },
+  { 'Work Order No.':'WO-005','Date':'21/05/2026','Customer Name':'Customer E','PO No.':'VST-2026-PO05','Order Description':'Valve set','Outsourcing Status':'NO NEED','Production Stage':'NOT STARTED','QC Status':'PENDING','Packing Status':'NOT STARTED','Current Status':'NOT STARTED','Dispatch Status':'PENDING','Remarks':'Awaiting material','Next Action Date':'25/05/2026' }
+];
+const DEMO_CARGO = [
+  { 'PO No.':'VST-2026-PO01','Customer Name':'Customer A','Work Order No.':'WO-001','Our End Pick Up Date':'20/05/2026' },
+  { 'PO No.':'VST-2026-PO02','Customer Name':'Customer B','Work Order No.':'WO-002','Our End Pick Up Date':'21/05/2026','Forwarder End Reaching Date':'23/05/2026' },
+  { 'PO No.':'VST-2026-PO03','Customer Name':'Customer C','Work Order No.':'WO-003','Our End Pick Up Date':'19/05/2026','Forwarder End Reaching Date':'21/05/2026','Forwarder Despatch Date':'22/05/2026','Port Final Dispatch Date':'24/05/2026' }
+];
+
 async function loadAll() {
   show('loading-screen');
   hide('error-screen');
@@ -516,11 +529,15 @@ async function loadAll() {
     clearTimeout(window._refreshTimer);
     window._refreshTimer = setTimeout(loadAll, 5 * 60 * 1000);
   } catch(e) {
-    console.error(e);
+    console.error('Sheet fetch failed, loading demo data:', e);
+    // Fall back to demo data so dashboard is always visible
+    woData    = DEMO_WO;
+    cargoData = DEMO_CARGO;
+    renderAll();
     hide('loading-screen');
-    document.getElementById('error-msg').textContent =
-      `${e.message}. Publish the sheet via: File → Share → Publish to web → Each tab as CSV.`;
-    document.getElementById('error-screen').classList.add('show');
+    show('dashboard');
+    // Show a soft notice instead of error screen
+    showBar('⚠️ Sheet not connected — showing demo data. Publish your Google Sheet to see live data.', 'loading');
   }
 }
 
