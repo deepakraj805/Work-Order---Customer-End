@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vishak Tech — Work Order Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -105,9 +107,40 @@
   .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2.2s ease-in-out infinite; }
   @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 6px var(--green)} 50%{opacity:0.4;box-shadow:0 0 2px var(--green)} }
 
-  /* SHEET SOURCE CHIP */
-  .sheet-source { display:inline-flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border-strong); border-radius:9px; padding:0.38rem 0.9rem; font-size:11.5px; color:var(--text2); }
-  .sheet-source svg { width:13px; height:13px; stroke:var(--green); fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+  /* CONNECT BAR */
+  .connect-bar {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 1rem 1.4rem; margin-bottom: 1.4rem; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .connect-label { font-size: 12px; font-weight: 700; color: var(--text2); white-space: nowrap; }
+  .connect-btn {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--accent); color: white; border: none;
+    padding: 0.46rem 1.1rem; border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all 0.18s;
+    box-shadow: 0 0 14px rgba(224,112,64,0.30);
+  }
+  .connect-btn:hover { background: var(--accent2); box-shadow: 0 0 22px rgba(224,112,64,0.50); }
+  .connect-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .connect-btn.google {
+    background: #fff; color: #3c4043; border: 1px solid #dadce0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .connect-btn.google:hover { background: #f8f9fa; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+  .connect-btn.google svg { width: 16px; height: 16px; }
+  .connect-hint { width: 100%; font-size: 11.5px; color: var(--text3); line-height: 1.6; }
+  .connect-hint a { color: var(--blue); text-decoration: none; }
+  .connect-hint a:hover { text-decoration: underline; }
+  .sheet-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--surface2); border: 1px solid var(--border-strong);
+    border-radius: 8px; padding: 0.38rem 0.75rem; font-size: 12px; color: var(--text2); font-family: inherit;
+  }
+  .sheet-chip .chip-name { color: var(--text); font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sheet-chip .chip-x { cursor: pointer; color: var(--text3); margin-left: 2px; font-size: 14px; line-height: 1; }
+  .sheet-chip .chip-x:hover { color: var(--red); }
+  #gapi-config-note { font-size: 11.5px; color: var(--amber); background: rgba(212,160,48,0.08); border: 1px solid rgba(212,160,48,0.22); border-radius: 8px; padding: 0.55rem 0.9rem; display: none; }
+  #gapi-config-note.show { display: block; }
 
   /* STATUS BAR */
   #status-bar { font-size: 12px; font-family: 'DM Mono', monospace; display: none; align-items: center; gap: 8px; padding: 0.6rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
@@ -300,21 +333,83 @@
         <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>
       </div>
       <div>
-        <div class="brand-name">Vishak Tech</div>
+        <div class="brand-name">WorkOS</div>
         <div class="brand-sub">Work Order & Cargo Pipeline</div>
       </div>
     </div>
     <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;" id="file-info">—</div>
     <div class="topbar-right">
       <div class="hbtn"><div class="live-dot"></div>&nbsp;Live</div>
-      <button class="hbtn" onclick="loadAll()">
+      <button class="hbtn" onclick="refreshData()">
         <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.54"/></svg>
         Refresh
       </button>
-      <a class="hbtn" id="open-sheet-btn" href="https://docs.google.com/spreadsheets/d/16RP9I8VDTDx4E2TAE8QVkA31sdegR6jW/edit" target="_blank">
+      <button class="hbtn" id="open-sheet-btn" onclick="openSheet()" style="display:none">
         <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         Open Sheet
-      </a>
+      </button>
+    </div>
+  </div>
+
+  <!-- CONNECT BAR -->
+  <div class="connect-bar" id="connect-bar">
+    <span class="connect-label">🗂️ Google Drive:</span>
+
+    <!-- Google Sign-In button -->
+    <button class="connect-btn google" id="btn-signin" onclick="handleSignIn()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Sign in with Google
+    </button>
+
+    <!-- Signed-in state -->
+    <div id="signed-in-controls" style="display:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="sheet-chip" id="user-chip">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:var(--green);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span id="user-email" class="chip-name">—</span>
+        <span class="chip-x" onclick="handleSignOut()" title="Sign out">✕</span>
+      </div>
+
+      <button class="connect-btn" id="btn-pick-wo" onclick="openPicker('wo')">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Pick Work Orders Sheet
+      </button>
+
+      <div id="wo-chip" style="display:none" class="sheet-chip">
+        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--green);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span id="wo-chip-name" class="chip-name">—</span>
+        <span class="chip-x" onclick="clearSheet('wo')" title="Remove">✕</span>
+      </div>
+
+      <button class="connect-btn" id="btn-pick-cargo" onclick="openPicker('cargo')" style="background:var(--surface3);color:var(--text2);border:1px solid var(--border-strong);box-shadow:none;">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Pick Cargo Sheet <span style="font-size:10px;opacity:0.7">(optional)</span>
+      </button>
+
+      <div id="cargo-chip" style="display:none" class="sheet-chip">
+        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--green);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span id="cargo-chip-name" class="chip-name">—</span>
+        <span class="chip-x" onclick="clearSheet('cargo')" title="Remove">✕</span>
+      </div>
+
+      <button class="connect-btn" id="btn-load" onclick="loadFromDrive()" style="display:none">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+        Load Data
+      </button>
+    </div>
+
+    <div class="connect-hint">
+      <strong style="color:var(--text2)">How to connect:</strong>
+      Sign in with your Google account → click <em>Pick Work Orders Sheet</em> → choose your spreadsheet from Drive. No URL copying needed.
+      Make sure your sheet is shared with your Google account or is accessible.
+    </div>
+    <div id="gapi-config-note">
+      ⚠️ To enable Google Drive integration, set your <strong>CLIENT_ID</strong> and <strong>API_KEY</strong> at the top of the script section.
+      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:var(--blue)">Get credentials ↗</a>
     </div>
   </div>
 
@@ -386,7 +481,6 @@
       <select class="card-search-select" id="filter-qc" onchange="renderWOTable()"><option value="">All QC</option></select>
       <select class="card-search-select" id="filter-dispatch" onchange="renderWOTable()"><option value="">All Dispatch</option></select>
       <select class="card-search-select" id="filter-status" onchange="renderWOTable()"><option value="">All Status</option></select>
-      <button class="clear-btn" id="clear-filters-btn" onclick="clearFilters()" style="display:none">✕ Clear</button>
     </div>
     <div style="overflow-x:auto">
       <table class="data-table" id="wo-table">
@@ -432,17 +526,6 @@
 
 <script>
 // ─────────────────────────────────────────────
-//  CONFIG — Sheet IDs and tab names
-// ─────────────────────────────────────────────
-const WO_SHEET_ID    = '16RP9I8VDTDx4E2TAE8QVkA31sdegR6jW';
-const WO_TAB         = 'Work Order';   // ← tab name for work orders
-const CARGO_TAB      = 'Cargo';        // ← tab name for cargo (leave empty '' to skip)
-
-function csvUrl(tab) {
-  return `https://docs.google.com/spreadsheets/d/${WO_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
-}
-
-// ─────────────────────────────────────────────
 //  DATA STORE
 // ─────────────────────────────────────────────
 let woData    = [];
@@ -450,70 +533,241 @@ let cargoData = [];
 let woSort    = { col: null, asc: true };
 let prodChartInstance = null;
 
+const SAMPLE_WO = [
+  {"Work Order No.":"WO-001","Date":"18/05/2026","Customer Name":"Customer A","PO No.":"VST-PO-001","Order Description":"Blade & filter items","Outsourcing Status":"NO NEED","Production Stage":"RELEASED","QC Status":"PENDING","Packing Status":"Not Started","Dispatch Status":"PENDING","Current Status":"In Progress","Remarks":"Ready for production","Next Action Date":"20/05/2026"},
+  {"Work Order No.":"WO-002","Date":"18/05/2026","Customer Name":"Customer B","PO No.":"VST-PO-002","Order Description":"Hydraulic cylinder assembly","Outsourcing Status":"TRANSFERRED","Production Stage":"COMPLETED","QC Status":"DONE","Packing Status":"Not Started","Dispatch Status":"PENDING","Current Status":"QC DONE","Remarks":"Waiting for packing","Next Action Date":"21/05/2026"},
+  {"Work Order No.":"WO-003","Date":"15/05/2026","Customer Name":"Customer C","PO No.":"VST-PO-003","Order Description":"Valve actuator set","Outsourcing Status":"NO NEED","Production Stage":"IN PROGRESS","QC Status":"PENDING","Packing Status":"Not Started","Dispatch Status":"PENDING","Current Status":"In Progress","Remarks":"On schedule","Next Action Date":"25/05/2026"},
+  {"Work Order No.":"WO-004","Date":"10/05/2026","Customer Name":"Customer D","PO No.":"VST-PO-004","Order Description":"Pressure gauge kit","Outsourcing Status":"NO NEED","Production Stage":"COMPLETED","QC Status":"DONE","Packing Status":"DONE","Dispatch Status":"DONE","Current Status":"DISPATCHED","Remarks":"Delivered","Next Action Date":""},
+  {"Work Order No.":"WO-005","Date":"12/05/2026","Customer Name":"Customer E","PO No.":"VST-PO-005","Order Description":"Control panel wiring","Outsourcing Status":"PENDING","Production Stage":"PENDING","QC Status":"PENDING","Packing Status":"Not Started","Dispatch Status":"PENDING","Current Status":"Pending","Remarks":"Awaiting materials","Next Action Date":"15/05/2026"}
+];
+
+const SAMPLE_CARGO = [
+  {"PO No.":"VST-PO-001","Customer Name":"Customer A","Work Order No.":"WO-001","Our End Pick Up Date":"20/05/2026","Forwarder End Reaching Date":"","Forwarder Despatch Date":"","Customs Clearance Date":"","After Customs Clearance":"","Port Final Dispatch Date":"","Cargo Start Date":"","Moving Date":"","Reach Destination":"","Customer End Reaching Date":"","Remarks":""},
+  {"PO No.":"VST-PO-004","Customer Name":"Customer D","Work Order No.":"WO-004","Our End Pick Up Date":"12/05/2026","Forwarder End Reaching Date":"13/05/2026","Forwarder Despatch Date":"14/05/2026","Customs Clearance Date":"16/05/2026","After Customs Clearance":"17/05/2026","Port Final Dispatch Date":"18/05/2026","Cargo Start Date":"18/05/2026","Moving Date":"","Reach Destination":"","Customer End Reaching Date":"","Remarks":"In transit"}
+];
+
 // ─────────────────────────────────────────────
-//  CSV PARSER
+//  GOOGLE API CONFIG  ← SET THESE
 // ─────────────────────────────────────────────
-function parseCSV(text) {
-  const lines = []; let cur = '', inQ = false, row = [];
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (c === '"') { if (inQ && text[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
-    else if (c === ',' && !inQ) { row.push(cur.trim()); cur = ''; }
-    else if ((c === '\n' || c === '\r') && !inQ) {
-      if (c === '\r' && text[i+1] === '\n') i++;
-      row.push(cur.trim()); cur = ''; lines.push(row); row = [];
-    } else cur += c;
-  }
-  if (cur || row.length) { row.push(cur.trim()); lines.push(row); }
-  if (lines.length < 2) return [];
-  const headers = lines[0].map(h => h.replace(/^"|"$/g, '').trim());
-  return lines.slice(1).filter(r => r.some(c => c !== '')).map(r => {
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = (r[i] || '').replace(/^"|"$/g, '').trim() || null; });
-    return obj;
+const GAPI_CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
+const GAPI_API_KEY   = 'YOUR_API_KEY';
+const GAPI_SCOPES    = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/drive.readonly';
+
+let tokenClient   = null;
+let accessToken   = null;
+let gapiReady     = false;
+let pickerReady   = false;
+let pendingPick   = null;
+
+let woSheetId    = null; let woSheetName    = null; let woSheetTab    = null;
+let cargoSheetId = null; let cargoSheetName = null; let cargoSheetTab = null;
+
+// ─── GAPI Init ────────────────────────────────
+function gapiLoaded() {
+  gapi.load('client:picker', async () => {
+    try {
+      await gapi.client.init({
+        apiKey: GAPI_API_KEY,
+        discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
+      });
+      gapiReady = pickerReady = true;
+    } catch(e) { /* will show config note */ }
+    checkConfigAndShowNote();
   });
 }
 
-// ─────────────────────────────────────────────
-//  LOAD ALL DATA
-// ─────────────────────────────────────────────
-async function loadAll() {
-  show('loading-screen');
-  hide('error-screen');
-  try {
-    // Load Work Orders
-    const woResp = await fetch(csvUrl(WO_TAB));
-    if (!woResp.ok) throw new Error(`HTTP ${woResp.status} — tab "${WO_TAB}" not found. Make sure the sheet is published.`);
-    woData = parseCSV(await woResp.text());
-
-    // Load Cargo (optional)
-    if (CARGO_TAB) {
-      try {
-        const cResp = await fetch(csvUrl(CARGO_TAB));
-        if (cResp.ok) cargoData = parseCSV(await cResp.text());
-      } catch(e) { /* non-fatal */ }
-    }
-
-    renderAll();
-    hide('loading-screen');
-    show('dashboard');
-    clearTimeout(window._refreshTimer);
-    window._refreshTimer = setTimeout(loadAll, 5 * 60 * 1000);
-  } catch(e) {
-    console.error(e);
-    hide('loading-screen');
-    document.getElementById('error-msg').textContent =
-      `${e.message}. Publish the sheet via: File → Share → Publish to web → Each tab as CSV.`;
-    document.getElementById('error-screen').classList.add('show');
+function checkConfigAndShowNote() {
+  const note = document.getElementById('gapi-config-note');
+  const btn  = document.getElementById('btn-signin');
+  if (GAPI_CLIENT_ID === 'YOUR_CLIENT_ID.apps.googleusercontent.com' || GAPI_API_KEY === 'YOUR_API_KEY') {
+    note.classList.add('show');
+    btn.disabled = true;
+    btn.title = 'Set CLIENT_ID and API_KEY in the script first';
+  } else {
+    note.classList.remove('show');
+    initGsi();
   }
 }
 
-function retryLoad() {
-  document.getElementById('error-screen').classList.remove('show');
-  loadAll();
+function initGsi() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GAPI_CLIENT_ID,
+    scope: GAPI_SCOPES,
+    callback: (resp) => {
+      if (resp.error) { setStatus('error', '✗ Sign-in failed: ' + resp.error); return; }
+      accessToken = resp.access_token;
+      // Get user email
+      fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${resp.access_token}`)
+        .then(r => r.json())
+        .then(info => { document.getElementById('user-email').textContent = info.email || 'Signed in'; })
+        .catch(() => { document.getElementById('user-email').textContent = 'Signed in ✓'; });
+      document.getElementById('btn-signin').style.display = 'none';
+      document.getElementById('signed-in-controls').style.display = 'flex';
+      setStatus('success', '✓ Signed in — pick your Google Sheet now');
+    }
+  });
 }
 
-window.onload = () => loadAll();
+// ─── Auth ─────────────────────────────────────
+function handleSignIn() {
+  if (!tokenClient) { alert('Google API not ready. Check CLIENT_ID and API_KEY configuration.'); return; }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function handleSignOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
+  accessToken = null;
+  woSheetId = woSheetName = woSheetTab = null;
+  cargoSheetId = cargoSheetName = cargoSheetTab = null;
+  document.getElementById('btn-signin').style.display = '';
+  document.getElementById('signed-in-controls').style.display = 'none';
+  document.getElementById('wo-chip').style.display = 'none';
+  document.getElementById('cargo-chip').style.display = 'none';
+  document.getElementById('btn-load').style.display = 'none';
+  setStatus('', '');
+}
+
+// ─── Drive Picker ─────────────────────────────
+function openPicker(type) {
+  if (!pickerReady || !accessToken) { setStatus('error', '✗ Please sign in first'); return; }
+  pendingPick = type;
+
+  const sheetsView = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+    .setIncludeFolders(true)
+    .setSelectFolderEnabled(false);
+
+  const recentView = new google.picker.DocsView(google.picker.ViewId.RECENTLY_PICKED);
+
+  new google.picker.PickerBuilder()
+    .enableFeature(google.picker.Feature.NAV_HIDDEN)
+    .setOAuthToken(accessToken)
+    .addView(sheetsView)
+    .addView(recentView)
+    .setDeveloperKey(GAPI_API_KEY)
+    .setCallback(pickerCallback)
+    .setTitle(type === 'wo' ? 'Pick Work Orders Spreadsheet' : 'Pick Cargo Pipeline Spreadsheet')
+    .build()
+    .setVisible(true);
+}
+
+async function pickerCallback(data) {
+  if (data.action !== google.picker.Action.PICKED) return;
+  const doc           = data.docs[0];
+  const spreadsheetId = doc.id;
+  const name          = doc.name;
+
+  try {
+    const meta = await gapi.client.sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties' });
+    const tabs  = meta.result.sheets.map(s => s.properties);
+    let tab;
+
+    if (tabs.length === 1) {
+      tab = tabs[0];
+    } else {
+      const tabNames = tabs.map((t, i) => `${i + 1}. ${t.title}`).join('\n');
+      const choice   = prompt(`"${name}" has ${tabs.length} tabs.\nEnter the number of the tab to use:\n\n${tabNames}`, '1');
+      if (!choice) return;
+      const idx = parseInt(choice) - 1;
+      tab = tabs[Math.max(0, Math.min(idx, tabs.length - 1))];
+    }
+
+    if (pendingPick === 'wo') {
+      woSheetId = spreadsheetId; woSheetName = name; woSheetTab = tab;
+      document.getElementById('wo-chip-name').textContent = `${name} › ${tab.title}`;
+      document.getElementById('wo-chip').style.display = 'inline-flex';
+    } else {
+      cargoSheetId = spreadsheetId; cargoSheetName = name; cargoSheetTab = tab;
+      document.getElementById('cargo-chip-name').textContent = `${name} › ${tab.title}`;
+      document.getElementById('cargo-chip').style.display = 'inline-flex';
+    }
+
+    if (woSheetId) document.getElementById('btn-load').style.display = '';
+    setStatus('success', `✓ "${name}" selected — click Load Data when ready`);
+  } catch(e) {
+    setStatus('error', '✗ Could not read spreadsheet metadata: ' + (e.result?.error?.message || e.message));
+  }
+}
+
+function clearSheet(type) {
+  if (type === 'wo') {
+    woSheetId = woSheetName = woSheetTab = null;
+    document.getElementById('wo-chip').style.display = 'none';
+    document.getElementById('btn-load').style.display = 'none';
+  } else {
+    cargoSheetId = cargoSheetName = cargoSheetTab = null;
+    document.getElementById('cargo-chip').style.display = 'none';
+  }
+}
+
+// ─── Load via Sheets API ──────────────────────
+async function loadFromDrive() {
+  if (!woSheetId) { setStatus('error', '✗ Please pick a Work Orders sheet first'); return; }
+  setStatus('loading', '<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(224,112,64,0.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite"></span>&nbsp; Loading from Google Sheets…');
+  try {
+    woData = await fetchSheetData(woSheetId, woSheetTab.title);
+    if (woData.length === 0) throw new Error('No data found in the selected tab');
+
+    if (cargoSheetId) {
+      try { cargoData = await fetchSheetData(cargoSheetId, cargoSheetTab.title); } catch(e) { /* non-fatal */ }
+    }
+
+    renderAll();
+    setStatus('success', `✓ Loaded ${woData.length} work order(s)${cargoData.length ? ` + ${cargoData.length} cargo record(s)` : ''}`);
+    document.getElementById('open-sheet-btn').style.display = '';
+    document.getElementById('open-sheet-btn').setAttribute('data-url', `https://docs.google.com/spreadsheets/d/${woSheetId}`);
+  } catch(e) {
+    setStatus('error', '✗ Could not load sheet: ' + (e.result?.error?.message || e.message));
+  }
+}
+
+async function fetchSheetData(spreadsheetId, tabTitle) {
+  const range = `'${tabTitle}'`;
+  const res   = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId, range });
+  const rows  = res.result.values || [];
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => String(h).trim());
+  return rows.slice(1)
+    .filter(r => r.some(c => c !== undefined && c !== ''))
+    .map(r => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = r[i] !== undefined ? String(r[i]).trim() || null : null; });
+      return obj;
+    });
+}
+
+// ─── INIT ─────────────────────────────────────
+window.onload = () => {
+  // Load GAPI after page is ready
+  if (typeof gapi !== 'undefined') { gapiLoaded(); }
+  else {
+    const s = document.createElement('script');
+    s.src = 'https://apis.google.com/js/api.js';
+    s.onload = gapiLoaded;
+    document.head.appendChild(s);
+  }
+  // Load sample data immediately so dashboard is usable
+  woData    = SAMPLE_WO;
+  cargoData = SAMPLE_CARGO;
+  renderAll();
+  hide('loading-screen');
+  show('dashboard');
+  setStatus('success', '✓ Sample data loaded — sign in with Google to connect your Drive sheet');
+};
+
+function retryLoad() {
+  hide('error-screen');
+  loadFromDrive();
+}
+
+function refreshData() {
+  if (woSheetId) { loadFromDrive(); return; }
+  renderAll(); setStatus('success', '✓ Sample data refreshed');
+}
+
+function openSheet() {
+  const url = document.getElementById('open-sheet-btn').getAttribute('data-url');
+  if (url) window.open(url, '_blank');
+}
 
 // ─────────────────────────────────────────────
 //  RENDER ALL
@@ -527,7 +781,7 @@ function renderAll() {
   renderCargo();
   const now = new Date().toLocaleString();
   set('file-info', `Google Sheets · refreshed ${now}`);
-  set('footer-ts', `Last refreshed: ${now} · Auto-refresh every 5 min`);
+  set('footer-ts', `Last refreshed: ${now}`);
 }
 
 // ─────────────────────────────────────────────
@@ -618,25 +872,12 @@ function sortWO(col) {
   renderWOTable();
 }
 
-function clearFilters() {
-  document.getElementById('wo-search').value = '';
-  document.getElementById('filter-prod').value = '';
-  document.getElementById('filter-qc').value = '';
-  document.getElementById('filter-dispatch').value = '';
-  document.getElementById('filter-status').value = '';
-  renderWOTable();
-}
-
 function renderWOTable() {
   const search    = (document.getElementById('wo-search').value||'').toLowerCase();
   const fProd     = document.getElementById('filter-prod').value;
   const fQC       = document.getElementById('filter-qc').value;
   const fDispatch = document.getElementById('filter-dispatch').value;
   const fStatus   = document.getElementById('filter-status').value;
-
-  const anyActive = search || fProd || fQC || fDispatch || fStatus;
-  const clearBtn  = document.getElementById('clear-filters-btn');
-  if (clearBtn) clearBtn.style.display = anyActive ? '' : 'none';
 
   let rows = woData.filter(r => {
     if (fProd     && r['Production Stage'] !== fProd)    return false;
