@@ -565,7 +565,7 @@
     </div>
     <div class="card">
       <div class="card-title">
-        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10H12z"/></svg>
         Status overview
       </div>
       <div id="status-bars"></div>
@@ -797,10 +797,67 @@ function renderCharts() {
 
   if (prodChartInstance) { prodChartInstance.destroy(); prodChartInstance = null; }
   if (entries.length) {
+    const prodColors = entries.map(([s])=>stageCol(s));
+    const glowDoughnutPlugin = {
+      id: 'glowArcs',
+      beforeDraw(chart) {
+        const ctx = chart.ctx;
+        const { width, height } = chart;
+        const cx = width / 2, cy = height / 2;
+        const r0 = Math.min(width, height) * 0.18;
+        const r1 = Math.min(width, height) * 0.46;
+        chart.data.datasets[0].backgroundColor = prodColors.map(hex => {
+          const g = ctx.createRadialGradient(cx, cy, r0, cx, cy, r1);
+          g.addColorStop(0, hex + 'ff');
+          g.addColorStop(0.5, hex + 'ee');
+          g.addColorStop(1, hex + '55');
+          return g;
+        });
+      },
+      afterDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        meta.data.forEach((arc, i) => {
+          const color = prodColors[i] || '#888';
+          const { startAngle, endAngle, innerRadius, outerRadius, x, y } = arc.getProps(['startAngle','endAngle','innerRadius','outerRadius','x','y'], true);
+          const midAngle = (startAngle + endAngle) / 2;
+          const midR = (innerRadius + outerRadius) / 2;
+          const px = x + Math.cos(midAngle) * midR;
+          const py = y + Math.sin(midAngle) * midR;
+          ctx.save();
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 22;
+          ctx.beginPath();
+          ctx.arc(px, py, (outerRadius - innerRadius) * 0.36, 0, Math.PI * 2);
+          ctx.fillStyle = color + '00';
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+    };
     prodChartInstance = new Chart(document.getElementById('prodChart'), {
       type: 'doughnut',
-      data: { labels: entries.map(([s])=>s), datasets:[{ data: entries.map(([,n])=>n), backgroundColor: entries.map(([s])=>stageCol(s)), borderWidth:2, borderColor:'#1e2720' }] },
-      options: { responsive:true, maintainAspectRatio:false, cutout:'65%', plugins:{ legend:{display:true,position:'bottom',labels:{color:'#b8d8c4',font:{size:11,family:'DM Sans'},padding:8,boxWidth:10,boxHeight:10}}, tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw}`}} } }
+      plugins: [glowDoughnutPlugin],
+      data: {
+        labels: entries.map(([s])=>s),
+        datasets:[{
+          data: entries.map(([,n])=>n),
+          backgroundColor: prodColors,
+          borderWidth: 2,
+          borderColor: '#1e2720',
+          hoverOffset: 10,
+          hoverBorderColor: prodColors,
+          hoverBorderWidth: 2.5
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
+        plugins:{
+          legend:{ display:true, position:'bottom', labels:{ color:'#b8d8c4', font:{size:11,family:'DM Sans'}, padding:8, boxWidth:10, boxHeight:10 }},
+          tooltip:{ callbacks:{ label:c=>` ${c.label}: ${c.raw}` }}
+        },
+        animation: { animateRotate: true, duration: 900, easing: 'easeInOutQuart' }
+      }
     });
   }
 
@@ -821,43 +878,71 @@ function renderCharts() {
     </div>`;
   }).join('') || '<div class="empty">No data</div>');
 
-  // Status bar chart
+  // Status doughnut chart
   if (statusChartInstance) { statusChartInstance.destroy(); statusChartInstance = null; }
   if (stEntries.length) {
     const total = stEntries.reduce((a,[,n])=>a+n,0);
+    const arcColors = stEntries.map(([,n],i)=>stColors[i%stColors.length]);
+    const glowStatusPlugin = {
+      id: 'glowStatusArcs',
+      beforeDraw(chart) {
+        const ctx = chart.ctx;
+        const { width, height } = chart;
+        const cx = width / 2, cy = height / 2;
+        const r0 = Math.min(width, height) * 0.18;
+        const r1 = Math.min(width, height) * 0.46;
+        chart.data.datasets[0].backgroundColor = arcColors.map(hex => {
+          const g = ctx.createRadialGradient(cx, cy, r0, cx, cy, r1);
+          g.addColorStop(0, hex + 'ff');
+          g.addColorStop(0.5, hex + 'ee');
+          g.addColorStop(1, hex + '44');
+          return g;
+        });
+      },
+      afterDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        meta.data.forEach((arc, i) => {
+          const color = arcColors[i] || '#888';
+          const { startAngle, endAngle, innerRadius, outerRadius, x, y } = arc.getProps(['startAngle','endAngle','innerRadius','outerRadius','x','y'], true);
+          const midAngle = (startAngle + endAngle) / 2;
+          const midR = (innerRadius + outerRadius) / 2;
+          const px = x + Math.cos(midAngle) * midR;
+          const py = y + Math.sin(midAngle) * midR;
+          ctx.save();
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 24;
+          ctx.beginPath();
+          ctx.arc(px, py, (outerRadius - innerRadius) * 0.36, 0, Math.PI * 2);
+          ctx.fillStyle = color + '00';
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+    };
     statusChartInstance = new Chart(document.getElementById('statusChart'), {
-      type: 'bar',
+      type: 'doughnut',
+      plugins: [glowStatusPlugin],
       data: {
         labels: stEntries.map(([s])=>s),
         datasets: [{
           data: stEntries.map(([,n])=>n),
-          backgroundColor: stEntries.map(([,n],i)=>stColors[i%stColors.length]+'cc'),
-          borderColor:      stEntries.map(([,n],i)=>stColors[i%stColors.length]),
-          borderWidth: 1.5,
-          borderRadius: 6,
-          borderSkipped: false,
-          barThickness: 22
+          backgroundColor: arcColors,
+          borderColor: arcColors,
+          borderWidth: 2,
+          hoverOffset: 10,
+          hoverBorderColor: arcColors,
+          hoverBorderWidth: 2.5
         }]
       },
       options: {
-        indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
+        cutout: '65%',
         plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: c => ' ' + c.raw + ' orders (' + Math.round(c.raw/total*100) + '%)' } }
+          legend: { display: true, position: 'bottom', labels: { color: '#b8d8c4', font: { size: 11, family: 'DM Sans' }, padding: 8, boxWidth: 10, boxHeight: 10 } },
+          tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw} (${Math.round(c.raw/total*100)}%)` } }
         },
-        scales: {
-          x: {
-            beginAtZero: true, ticks: { color: '#7a9a8a', font: { size: 11 }, stepSize: 1 },
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            border: { color: 'rgba(255,255,255,0.08)' }
-          },
-          y: {
-            ticks: { color: '#b8d8c4', font: { size: 11, weight: '600', family: 'DM Sans' } },
-            grid: { display: false },
-            border: { display: false }
-          }
-        }
+        animation: { animateRotate: true, duration: 900, easing: 'easeInOutQuart' }
       }
     });
   }
